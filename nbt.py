@@ -72,15 +72,15 @@ class TagType:
 
         # Tags in lists don't have a name.
         if named:
-            self.parse_name()
+            self.deserialize_name()
             assert self.size - self._prev_size >= 2
 
         # Reminder: Payload parsing may recurse!
-        self.parse_payload()
+        self.deserialize_payload()
         assert self.size - self._prev_size >= 1
 
 
-    def parse_name(self) -> None:
+    def deserialize_name(self) -> None:
         """ Sets the TagName attribute
 
         Returns 2 + (size of string as specific by the two bytes)
@@ -107,7 +107,7 @@ class TagType:
         self.TagName = self.nbt_data[self.size:self.size + string_size].decode('utf-8')
         self.checkpoint(string_size)
 
-    def parse_payload(self) -> int:
+    def deserialize_payload(self) -> int:
         raise NotImplementedError
 
     def checkpoint(self, amount: int):
@@ -128,7 +128,7 @@ class TagInt(TagType):
 
     width: int = None
 
-    def parse_payload(self):
+    def deserialize_payload(self):
         self.TagPayload = int.from_bytes(
             self.nbt_data[self.size:self.size+self.width],
             byteorder='big',
@@ -159,7 +159,7 @@ class TagFloat(TagType):
 
     width: int = None
 
-    def parse_payload(self):
+    def deserialize_payload(self):
         # TODO cast this value to a float
         self.TagPayload = self.nbt_data[self.size:self.size + self.width]
         self.checkpoint(self.width)
@@ -179,7 +179,7 @@ class TagIterable(TagType):
 
 class TAG_Byte_Array(TagIterable):
     
-    def parse_payload(self):
+    def deserialize_payload(self):
         self.TagPayload: List[bytes] = []
         array_size_width = 4  # an int provides the array length
         array_size = int.from_bytes(
@@ -197,7 +197,7 @@ class TAG_Byte_Array(TagIterable):
 
 class TAG_String(TagType):
 
-    def parse_payload(self):
+    def deserialize_payload(self):
         string_size_width = 2  # a short provides the string length
         string_size = int.from_bytes(
             self.nbt_data[self.size:self.size + string_size_width],
@@ -216,7 +216,7 @@ class TAG_String(TagType):
 
 class TAG_List(TagIterable):
 
-    def parse_payload(self):
+    def deserialize_payload(self):
         self.TagPayload: List[TagType] = []
 
         # First, which determine the tag class:
@@ -245,7 +245,7 @@ class TAG_List(TagIterable):
 
 class TAG_Compound(TagIterable):
 
-    def parse_payload(self):
+    def deserialize_payload(self):
         self.TagPayload: List[TagTypes] = []
         while True:
             tag_id = self.nbt_data[self.size:][0]
@@ -263,7 +263,7 @@ class TAG_Compound(TagIterable):
 
 class TAG_Int_Array(TagIterable):
 
-    def parse_payload(self):
+    def deserialize_payload(self):
         self.TagPayload: List[int] = []
         array_value_width = 4  # we're creating a list of ints
         array_size_width = 4   # an int provides the array length
@@ -287,7 +287,7 @@ class TAG_Int_Array(TagIterable):
 
 class TAG_Long_Array(TagIterable):
 
-    def parse_payload(self):
+    def deserialize_payload(self):
         self.TagPayload: List[int] = []
         array_value_width = 8  # we're creating a list of longs
         array_size_width = 4   # an int provides the array length
@@ -327,10 +327,10 @@ TAG_TYPES: Dict[int, TagType] = {
 
 
 # Actual work is done in here.
-def _parse(nbt_data: bytes) -> List[TagType]:
-    """ Parse NBT data and return a tree
+def _deserialize(nbt_data: bytes) -> List[TagType]:
+    """ Deserialize NBT data and return a tree
 
-    All parse() methods for container types eventually call this.
+    All deserialize() methods for container types eventually call this.
     """
     nbt_tree = []  # this gets returned
     total_bytes = len(nbt_data)
@@ -345,8 +345,8 @@ def _parse(nbt_data: bytes) -> List[TagType]:
 
 
 # Start here.
-def parse(filename: str) -> List[TagType]:
-    """ Parse a GZip compressed NBT file
+def deserialize(filename: str) -> List[TagType]:
+    """ deserialize a GZip compressed NBT file
     """
 
     # Take a compressed file and extract the compressed data
@@ -356,11 +356,11 @@ def parse(filename: str) -> List[TagType]:
     # Decompress the data
     decompressed_nbt_data = gzip.decompress(compressed_nbt_data)
 
-    # Parse the data
+    # deserialize the data
     #
     #   The root node is special; it's always a compound tag.
     #   Get the first byte from the decompressed data, lookup the tag type, and
-    #   instantiate it. Pass the array of bytes into the type's "parse" method.
-    #   The parse method will return the number of bytes parsed. Subtract from
-    #   the total bytes to parse and continue until the value reaches zero.
-    return _parse(decompressed_nbt_data)
+    #   instantiate it. Pass the array of bytes into the type's "deserialize" method.
+    #   The deserialize method will return the number of bytes deserialized. Subtract from
+    #   the total bytes to deserialize and continue until the value reaches zero.
+    return _deserialize(decompressed_nbt_data)
