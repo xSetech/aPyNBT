@@ -12,18 +12,25 @@ class TagType:
     TagName: str = None
     TagPayload: Any = None
 
-    def __init__(self, nbt_data: bytes):
+    def __init__(self, tagID: int, nbt_data: bytes):
         """ Just save a reference to the bytes slice
         """
+        self.TagID = tagID
         self.nbt_data = nbt_data
-        self.parse_name()
-        self.parse_payload()
 
-    def parse_name(self):
-        """ This is the same for all tags!
+        # Interpret the NBT data
+        self.size = 1  # at least 1 byte for the tag id
+        self.size += self.parse_name()
+        self.size += self.parse_payload()
+
+    def parse_name(self) -> int:
+        """ Sets the TagName attribute
+
+        Returns 2 + (size of string as specific by the two bytes)
         """
+        return 2
 
-    def parse_payload(self):
+    def parse_payload(self) -> int:
         raise NotImplementedError
 
 
@@ -96,16 +103,6 @@ TAG_TYPES: Dict[int, TagType] = {
 }
 
 
-def create_tag(nbt_data: bytes) -> Tuple[TagType, int]:
-    """ Instantiate a tag and return the size
-    """
-    # Get the tag class using the first byte from the index and decrement
-    # remaining_bytes since the first byte is no longer needed.
-    tag_id = nbt_data[0]
-    tag = TAG_TYPES[tag_id]
-    return 1 + TAG_TYPES[tag_id](nbt_data).parse()
-
-
 # Actual work is done in here.
 def _parse(nbt_data: bytes) -> List[TagType]:
     """ Parse NBT data and return a tree
@@ -117,9 +114,9 @@ def _parse(nbt_data: bytes) -> List[TagType]:
     remaining_bytes = total_bytes
     while remaining_bytes > 0:
         index = total_bytes - remaining_bytes
-        tag, parsed_bytes = create_tag(nbt_data[index:])
-        assert parsed_bytes >= 1  # we at least read the tag id
-        remaining_bytes -= parsed_bytes
+        tag_id = nbt_data[index:][0]
+        tag = TAG_TYPES[tag_id](tag_id, nbt_data[index:])
+        remaining_bytes -= tag.size
         nbt_tree.append(tag)
     return nbt_tree
 
