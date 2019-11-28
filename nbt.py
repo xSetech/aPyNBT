@@ -24,8 +24,9 @@ class TagType:
         self.size: int = 0
         self._prev_size: int = 0  # used for sanity checking
 
-        # End tags don't have a name or payload field
+        # End tags are basically a tag id without a name or payload
         if isinstance(self, TAG_End):
+            self.size = 1
             return
 
         # Tags in lists don't have a tag id byte.
@@ -201,8 +202,19 @@ class TAG_List(TagIterable):
 class TAG_Compound(TagIterable):
 
     def parse_payload(self):
-        self.TagPayload = _parse(self.nbt_data[self.size:])
-        self.checkpoint(sum([tag.size for tag in self.TagPayload]))
+        self.TagPayload: List[TagTypes] = []
+        while True:
+            tag_id = self.nbt_data[self.size:][0]
+            tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[self.size:])
+            self.checkpoint(tag.size)
+            self.TagPayload.append(tag)
+
+            # Break out if we reached a TAG_End!
+            #   This tag type never appears at the root of the tree unless the file
+            #   is corrupted. If we reach this point, we're probably processing on
+            #   behalf of a compound tag.
+            if isinstance(tag, TAG_End):
+                break
 
 
 class TAG_Int_Array(TagIterable):
@@ -245,14 +257,6 @@ def _parse(nbt_data: bytes) -> List[TagType]:
         tag = TAG_TYPES[tag_id](tag_id, nbt_data[index:])
         remaining_bytes -= tag.size
         nbt_tree.append(tag)
-
-        # Break out if we reached a TAG_End!
-        #   This tag type never appears at the root of the tree unless the file
-        #   is corrupted. If we reach this point, we're probably processing on
-        #   behalf of a compound tag.
-        if isinstance(tag, TAG_End):
-            break
-
     return nbt_tree
 
 
