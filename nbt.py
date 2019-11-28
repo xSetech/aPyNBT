@@ -129,7 +129,11 @@ class TAG_Double(TagFloat):
     pass
 
 
-class TAG_Byte_Array(TagType):
+class TagIterable(TagType):
+    pass
+
+
+class TAG_Byte_Array(TagIterable):
     
     def parse_payload(self):
         self.TagPayload: List[bytes] = []
@@ -166,7 +170,7 @@ class TAG_String(TagType):
         self.checkpoint(string_size)
 
 
-class TAG_List(TagType):
+class TAG_List(TagIterable):
 
     def parse_payload(self):
         self.TagPayload: List[TagType] = []
@@ -194,18 +198,18 @@ class TAG_List(TagType):
             self.checkpoint(tag.size)
 
 
-class TAG_Compound(TagType):
+class TAG_Compound(TagIterable):
 
     def parse_payload(self):
         self.TagPayload = _parse(self.nbt_data[self.size:])
         self.checkpoint(sum([tag.size for tag in self.TagPayload]))
 
 
-class TAG_Int_Array(TagType):
+class TAG_Int_Array(TagIterable):
     pass
 
 
-class TAG_Long_Array(TagType):
+class TAG_Long_Array(TagIterable):
     pass
 
 
