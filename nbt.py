@@ -184,7 +184,7 @@ class TAG_List(TagIterable):
 
         # First, which determine the tag class:
         tag_id_width = 1  # byte
-        tag_id = self.nbt_data[self.size:self.size + tag_id_width]
+        tag_id = self.nbt_data[self.size:self.size + tag_id_width][0]
         self.checkpoint(tag_id_width)
 
         # Second, determine how many of each tag class:
