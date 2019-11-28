@@ -12,17 +12,28 @@ class TagType:
     TagName: str = None
     TagPayload: Any = None
 
-    def __init__(self, tagID: int, nbt_data: bytes):
+    def __init__(self, tagID: int, nbt_data: bytes, named: bool = True, tagged: bool = True):
         """ Just save a reference to the bytes slice
         """
         self.TagID = tagID
-
         self.nbt_data: bytes = nbt_data
-        self.size: int = 1  # 1 byte processed (tag id)
-
+    
         # Note: The size is used as an index for each method.
-        # Payload parsing may recurse!
-        self.size += self.parse_name()
+        self.size: int = 0
+
+        # End tags don't have a name or payload field
+        if isinstance(self, TAG_End):
+            return
+
+        # Tags in lists don't have a tag id byte.
+        if tagged:
+            self.size += 1  # 1 byte processed (tag id)
+
+        # Tags in lists don't have a name.
+        if named:
+            self.size += self.parse_name()
+
+        # Reminder: Payload parsing may recurse!
         self.size += self.parse_payload()
 
 
@@ -56,49 +67,131 @@ class TagType:
 
 
 class TAG_End(TagType):
+    """ Marks the end of a container or file """
     pass
 
 
-class TAG_Byte(TagType):
+class TagInt(TagType):
+    """ Parent class for integer-ish tag types
+    """
+
+    width: int = None
+
+    def parse_payload(self):
+        self.TagPayload = int.from_bytes(
+            self.nbt_data[self.size:self.size+self.width],
+            byteorder='big',
+            signed=True
+        )
+        return self.width
+
+
+class TAG_Byte(TagInt):
+    width = 1
+
+
+class TAG_Short(TagInt):
+    width = 2
+
+
+class TAG_Int(TagInt):
+    width = 4
+
+
+class TAG_Long(TagInt):
+    width = 8
+
+
+class TagFloat(TagType):
+    """ Parent class for floating point tag types
+    """
+    pass # TODO
+
+
+class TAG_Float(TagFloat):
     pass
 
 
-class TAG_Short(TagType):
-    pass
-
-
-class TAG_Int(TagType):
-    pass
-
-
-class TAG_Long(TagType):
-    pass
-
-
-class TAG_Float(TagType):
-    pass
-
-
-class TAG_Double(TagType):
+class TAG_Double(TagFloat):
     pass
 
 
 class TAG_Byte_Array(TagType):
-    pass
+    
+    def parse_payload(self):
+        self.TagPayload: List[bytes] = []
+        array_size_width = 4  # an int provides the array length
+        array_size = int.from_bytes(
+            self.nbt_data[self.size:self.size + array_size_width],
+            byteorder='big',
+            signed=False
+        )
+
+        # Straight-forward walk of each byte, appending to the payload array.
+        array_index_start = self.size + array_size_width  # after the provided length
+        for index in range(array_size):
+            self.TagPayload.append(self.nbt_data[array_index_start:array_index_start + index + 1])
+        
+        return array_size_width + array_size
 
 
 class TAG_String(TagType):
-    pass
+
+    def parse_payload(self):
+        string_size_width = 2  # a short provides the string length
+        string_size = int.from_bytes(
+            self.nbt_data[self.size:self.size + string_size_width],
+            byteorder='big',
+            signed=False
+        )
+
+        # Empty strings do not have payloads
+        if string_size == 0:
+            return string_size_width
+
+        string_index_start = self.size + string_size_width
+        string_index_stop = string_index_start + string_size
+        self.TagPayload = self.nbt_data[string_index_start:string_index_stop].decode('utf-8')
+
+        return string_size_width + string_size
 
 
 class TAG_List(TagType):
-    pass
+
+    def parse_payload(self):
+        self.TagPayload: List[TagType] = []
+
+        # First, which determine the tag class:
+        tag_id_width = 1  # byte
+        tag_id = self.nbt_data[self.size:self.size + tag_id_width]
+
+        # Second, determine how many of each tag class:
+        array_size_width = 4  # int
+        array_size_index_start = self.size + tag_id_width
+        array_size_index_stop = array_size_index_start + array_size_width
+        array_size = int.from_bytes(
+            self.nbt_data[array_size_index_start:array_size_index_stop],
+            byteorder='big',
+            signed=False
+        )
+
+        # The implementation here is a first guess of how Markus implemented
+        # lists. I'm assuming the payload of each tag is back-to-back. That is,
+        # it's just a compound tag without the tag id or name preceeding the
+        # element.
+        offset = array_size_index_stop
+        for index in range(array_size):
+            tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[offset:], named=False, tagged=False)
+            offset += tag.size
+
+        return offset
 
 
 class TAG_Compound(TagType):
 
     def parse_payload(self):
-        return len(self.nbt_data)  # XXX Just for testing
+        self.TagPayload = _parse(self.nbt_data[self.size:])
+        return sum([tag.size for tag in self.TagPayload])
 
 
 class TAG_Int_Array(TagType):
@@ -141,6 +234,14 @@ def _parse(nbt_data: bytes) -> List[TagType]:
         tag = TAG_TYPES[tag_id](tag_id, nbt_data[index:])
         remaining_bytes -= tag.size
         nbt_tree.append(tag)
+
+        # Break out if we reached a TAG_End!
+        #   This tag type never appears at the root of the tree unless the file
+        #   is corrupted. If we reach this point, we're probably processing on
+        #   behalf of a compound tag.
+        if isinstance(tag, TAG_End):
+            break
+
     return nbt_tree
 
 
