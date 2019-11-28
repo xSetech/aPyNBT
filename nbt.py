@@ -22,6 +22,7 @@ class TagType:
 
         # Note: The size is used as an index for each method.
         self.size: int = 0
+        self._prev_size: int = 0  # used for sanity checking
 
         # End tags don't have a name or payload field
         if isinstance(self, TAG_End):
@@ -33,13 +34,15 @@ class TagType:
 
         # Tags in lists don't have a name.
         if named:
-            self.size += self.parse_name()
+            self.parse_name()
+            assert self.size - self._prev_size >= 2
 
         # Reminder: Payload parsing may recurse!
-        self.size += self.parse_payload()
+        self.parse_payload()
+        assert self.size - self._prev_size >= 1
 
 
-    def parse_name(self) -> int:
+    def parse_name(self) -> None:
         """ Sets the TagName attribute
 
         Returns 2 + (size of string as specific by the two bytes)
@@ -55,17 +58,23 @@ class TagType:
         # If the string size is 0, consider the name to be ""
         if string_size == 0:
             self.TagName = ""
-            return 2
+            self.checkpoint(2)
 
         # Otherwise, interpret the string name as UTF-8
         string_index_start = self.size + 2
         string_index_stop = string_index_start + string_size
         self.TagName = self.nbt_data[string_index_start:string_index_stop].decode('utf-8')
 
-        return 2 + string_size
+        self.checkpoint(2 + string_size)
 
     def parse_payload(self) -> int:
         raise NotImplementedError
+
+    def checkpoint(self, amount: int):
+        """ Increase the value of self.size by some amount
+        """
+        self._prev_size = self.size
+        self.size += amount
 
 
 class TAG_End(TagType):
@@ -85,7 +94,7 @@ class TagInt(TagType):
             byteorder='big',
             signed=True
         )
-        return self.width
+        self.checkpoint(self.width)
 
 
 class TAG_Byte(TagInt):
@@ -134,7 +143,7 @@ class TAG_Byte_Array(TagType):
         for index in range(array_size):
             self.TagPayload.append(self.nbt_data[array_index_start:array_index_start + index + 1])
         
-        return array_size_width + array_size
+        self.checkpoint(array_size_width + array_size)
 
 
 class TAG_String(TagType):
@@ -149,13 +158,13 @@ class TAG_String(TagType):
 
         # Empty strings do not have payloads
         if string_size == 0:
-            return string_size_width
+            self.checkpoint(string_size_width)
 
         string_index_start = self.size + string_size_width
         string_index_stop = string_index_start + string_size
         self.TagPayload = self.nbt_data[string_index_start:string_index_stop].decode('utf-8')
 
-        return string_size_width + string_size
+        self.checkpoint(string_size_width + string_size)
 
 
 class TAG_List(TagType):
@@ -186,14 +195,14 @@ class TAG_List(TagType):
             tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[offset:], named=False, tagged=False)
             offset += tag.size
 
-        return offset
+        self.checkpoint(offset)
 
 
 class TAG_Compound(TagType):
 
     def parse_payload(self):
         self.TagPayload = _parse(self.nbt_data[self.size:])
-        return sum([tag.size for tag in self.TagPayload])
+        self.checkpoint(sum([tag.size for tag in self.TagPayload]))
 
 
 class TAG_Int_Array(TagType):
