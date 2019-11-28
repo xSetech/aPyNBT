@@ -118,12 +118,11 @@ class TagType:
 
 
 class TAG_End(TagType):
-    """ Marks the end of a container or file """
-    pass
+    """ Special-case; see the __init__ of TagType """
 
 
 class TagInt(TagType):
-    """ Parent class for integer-ish tag types
+    """ Parent-class for tags with an integer-typed payload
     """
 
     width: int = None
@@ -174,7 +173,8 @@ class TAG_Double(TagFloat):
 
 
 class TagIterable(TagType):
-    pass
+    """ Parent-class for tags with an iterable payload
+    """
 
 
 class TAG_Byte_Array(TagIterable):
@@ -219,12 +219,12 @@ class TAG_List(TagIterable):
     def deserialize_payload(self):
         self.TagPayload: List[TagType] = []
 
-        # First, which determine the tag class:
+        # Determine the tag type; this only gives us the class to instantiate
         tag_id_width = 1  # byte
         tag_id = self.nbt_data[self.size:self.size + tag_id_width][0]
         self.checkpoint(tag_id_width)
 
-        # Second, determine how many of each tag class:
+        # Determine the eventual number of elements in the list
         array_size_width = 4  # int
         array_size = int.from_bytes(
             self.nbt_data[self.size:self.size + array_size_width],
@@ -233,11 +233,11 @@ class TAG_List(TagIterable):
         )
         self.checkpoint(array_size_width)
 
-        # The implementation here is a first guess of how Markus implemented
-        # lists. I'm assuming the payload of each tag is back-to-back. That is,
-        # it's just a compound tag without the tag id or name preceeding the
-        # element.
-        for index in range(array_size):
+        # The size of each tag isn't known ahead of time. All we know is that
+        # we need to append `array_size` tags to the list. Successive offsets
+        # into the data are determined by the sum of the sizes of the
+        # previously deserialized tags.
+        for _ in range(array_size):
             tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[self.size:], named=False, tagged=False)
             self.TagPayload.append(tag)
             self.checkpoint(tag.size)
@@ -252,11 +252,6 @@ class TAG_Compound(TagIterable):
             tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[self.size:])
             self.checkpoint(tag.size)
             self.TagPayload.append(tag)
-
-            # Break out if we reached a TAG_End!
-            #   This tag type never appears at the root of the tree unless the file
-            #   is corrupted. If we reach this point, we're probably processing on
-            #   behalf of a compound tag.
             if isinstance(tag, TAG_End):
                 break
 
