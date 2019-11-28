@@ -50,20 +50,56 @@ class TagType:
     TagPayload: Any = None
 
     def __init__(self, tagID: int, nbt_data: bytes, named: bool = True, tagged: bool = True):
-        """ Just save a reference to the bytes slice
+        """ Instantiation for all decendent tag types
+
+        The purpose of this method is to populate the three tag attributes (id,
+        name, and payload). Additional attributes are created for convinience
+        (e.g. tagID doesn't actually need to be passed to get the tag name and
+        tag payload). The "TagName" and "TagPayload" attributes are populated
+        based on data in the byte array "nbt_data".
+        
+        Args:
+
+            tagID::int
+                The numeric identifier of the tag that's used as a key into
+                TAG_TYPES to get the specific tag class.
+
+            nbt_data::bytes
+                A slice of bytes where the 0th index is the start of meaningful
+                data for this tag. For example, nbt_data[0] is usually the tag
+                id byte. The wording there is funny because not all tag
+                instances have a tag id byte (i.e. when they're packed into a
+                TAG_List payload area).
+
+            named::bool
+                Does the tag have bytes in nbt_data corresponding to the TagName attribute?
+
+            tagged::bool
+                Does the tag have bytes in nbt_data corresponding to the TagID attribute?
+
+        Note that TAG_End is a special case of just a single byte of zero. You
+        can think of it as a tag without bytes in nbt_data corresponding to the
+        TagName or TagPayload attributes.
         """
         self.TagID = tagID
         self.nbt_data: bytes = nbt_data
         self.named: bool = named
         self.tagged: bool = tagged
 
-        # Note: The size is used as an index for each method.
+        # self.size is used as an index into self.nbt_data in each
+        # deserialize_* method. When each method is done processing a block of
+        # bytes, the method calls self.checkpoint() to increment the value of
+        # self.size by the number of bytes processed. That way, the next code
+        # to process a block of bytes can use nbt_data[self.size:] to skip
+        # bytes that have already been processed. The other purpose of
+        # self.size is of course to get the total number of bytes the tag takes
+        # up in the NBT file.
         self.size: int = 0
         self._prev_size: int = 0  # used for sanity checking
 
         # End tags are basically a tag id without a name or payload
         if isinstance(self, TAG_End):
-            self.size = 1
+            self.size = 1  # 1 byte processed (tag id)
             return
 
         # Tags in lists don't have a tag id byte.
@@ -73,17 +109,15 @@ class TagType:
         # Tags in lists don't have a name.
         if named:
             self.deserialize_name()
-            assert self.size - self._prev_size >= 2
+            assert self.size - self._prev_size >= 2  # all strings use at least two bytes
 
         # Reminder: Payload parsing may recurse!
         self.deserialize_payload()
-        assert self.size - self._prev_size >= 1
+        assert self.size - self._prev_size >= 1  # all payloads use at least one byte
 
 
     def deserialize_name(self) -> None:
         """ Sets the TagName attribute
-
-        Returns 2 + (size of string as specific by the two bytes)
         """
         # The size of the name is give by two Big Endian bytes, offset one from
         # the first byte (the tag id).
@@ -108,6 +142,8 @@ class TagType:
         self.checkpoint(string_size)
 
     def deserialize_payload(self) -> int:
+        """ Sets the TagPayload attribute
+        """
         raise NotImplementedError
 
     def checkpoint(self, amount: int):
