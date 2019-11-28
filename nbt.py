@@ -246,7 +246,7 @@ class TAG_List(TagIterable):
 class TAG_Compound(TagIterable):
 
     def deserialize_payload(self):
-        self.TagPayload: List[TagTypes] = []
+        self.TagPayload: List[TagType] = []
         while True:
             tag_id = self.nbt_data[self.size:][0]
             tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[self.size:])
