@@ -1,5 +1,42 @@
-""" NBT File Format Parser
-2019 Seth Junot (xsetech@gmail.com)
+# -*- coding: utf-8 -*-
+""" NBT Serializer and Deserializer
+
+This was a midnight programming experiment started with the goal of viewing and
+editing a Minecraft 1.1 level.dat. The implementation is based on the
+descriptions of the NBT file layout from these two docs:
+
+https://web.archive.org/web/20191006152706/https://minecraft.gamepedia.com/NBT_format
+https://web.archive.org/web/20110723210920/http://www.minecraft.net/docs/NBT.txt
+
+Short summary:
+
+    - NBT files are GZip compressed. In order to work with the data inside,
+      they must obviously be decompressed. This module accepts either a
+      filename which contains compressed data, or a blob of decompressed data.
+
+    - The documentation is fuzzy about definitions and I haven't searched for
+      whether Mojang provides any kind of implementation guidelines. There are
+      some guesses and assumptions built into this that aren't spelled out in
+      the docs. It seems to work :) To elaborate...
+
+    - NBT is conceptually about "tags", which are a triple of data. See the
+      TagType class's TagID, TagName, and TagPayload attributes. The
+      documentation sometimes uses the names of specific tags (e.g. TAG_String,
+      TAG_Int, etc) to refer to the size of attributes or size of elements of
+      an array rather than literally the three attributes (id, name, payload)
+      packed together. For example, a TAG_String in Markus' txt spec has a
+      "length" attribute defined as a "TAG_Short". The length attribute is just
+      a `short`, or 2 8-bit bytes. He could have just said "it's 16 bits", but
+      whatever- baby's first data serialization format lol. TAG_End is another
+      example of a tag which breaks the general format (id, name, payload).
+      This tag is just a single zero-valued byte (0x00).  There's no name or
+      payload.
+
+    - Files that use NBT create a tree structure. The spec doesn't not clarify
+      what kind of tree. In practice, there is one root which is always the
+      TAG_Compound tag type. My implementation permits multiple roots.
+
+This was written and tested using Python 3.6
 """
 
 import gzip
