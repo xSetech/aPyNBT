@@ -16,7 +16,9 @@ class TagType:
         """ Just save a reference to the bytes slice
         """
         self.TagID = tagID
-        self.nbt_data = nbt_data
+
+        self.nbt_data: bytes = nbt_data
+        self.index: int = 1  # 1 byte away from the tag id
 
         # Interpret the NBT data
         self.size = 1  # at least 1 byte for the tag id
@@ -28,7 +30,23 @@ class TagType:
 
         Returns 2 + (size of string as specific by the two bytes)
         """
-        return 2
+        # The size of the name is give by two Big Endian bytes, offset one from
+        # the first byte (the tag id).
+        string_size = int.from_bytes(
+            self.nbt_data[1:3],
+            byteorder='big',
+            signed=False
+        )
+
+        # If the string size is 0, consider the name to be ""
+        if string_size == 0:
+            self.TagName = ""
+            return 2
+
+        # Otherwise, interpret the string name as UTF-8
+        self.TagName = self.nbt_data[3:3+string_size].decode('utf-8')
+
+        return 2 + string_size
 
     def parse_payload(self) -> int:
         raise NotImplementedError
@@ -75,7 +93,9 @@ class TAG_List(TagType):
 
 
 class TAG_Compound(TagType):
-    pass
+
+    def parse_payload(self):
+        return len(self.nbt_data)  # XXX Just for testing
 
 
 class TAG_Int_Array(TagType):
