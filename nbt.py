@@ -18,12 +18,13 @@ class TagType:
         self.TagID = tagID
 
         self.nbt_data: bytes = nbt_data
-        self.index: int = 1  # 1 byte away from the tag id
+        self.size: int = 1  # 1 byte processed (tag id)
 
-        # Interpret the NBT data
-        self.size = 1  # at least 1 byte for the tag id
+        # Note: The size is used as an index for each method.
+        # Payload parsing may recurse!
         self.size += self.parse_name()
         self.size += self.parse_payload()
+
 
     def parse_name(self) -> int:
         """ Sets the TagName attribute
@@ -33,7 +34,7 @@ class TagType:
         # The size of the name is give by two Big Endian bytes, offset one from
         # the first byte (the tag id).
         string_size = int.from_bytes(
-            self.nbt_data[1:3],
+            self.nbt_data[self.size:self.size+2],
             byteorder='big',
             signed=False
         )
@@ -44,7 +45,9 @@ class TagType:
             return 2
 
         # Otherwise, interpret the string name as UTF-8
-        self.TagName = self.nbt_data[3:3+string_size].decode('utf-8')
+        string_index_start = self.size + 2
+        string_index_stop = string_index_start + string_size
+        self.TagName = self.nbt_data[string_index_start:string_index_stop].decode('utf-8')
 
         return 2 + string_size
 
