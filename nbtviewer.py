@@ -33,7 +33,7 @@ def depth_first_printout(screen, tree, level):
             if isinstance(branch, str):
                 size = str(len(branch))
             
-        line = "{:<32} {:>3} {:>5}B {:>16} = {}".format(f"{padding}{tagtype}", level, size, name, value)
+        line = "{:<32} {:>3} {:>5}B {:>24} = {}".format(f"{padding}{tagtype}", level, size, name, value)
         print(line)
 
         # Then print the branches of the branch:
@@ -44,8 +44,8 @@ def depth_first_printout(screen, tree, level):
 
 def main():
     # Header
-    print("{:<32} {:>3} {:>5}  {:>16} = {}".format(f"TYPE", "LVL", "SIZE", "NAME", "VALUE"))
-    print('-' * (32 + 1 + 3 + 1 + 5 + 2 + 16 + 2))
+    print("{:<32} {:>3} {:>5}  {:>24} = {}".format(f"TYPE", "LVL", "SIZE", "NAME", "VALUE"))
+    print('-' * (32 + 1 + 3 + 1 + 5 + 2 + 24 + 2))
 
     # Data
     tree = nbt.parse('level.dat.gz')
