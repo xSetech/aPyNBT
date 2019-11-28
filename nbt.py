@@ -17,7 +17,9 @@ class TagType:
         """
         self.TagID = tagID
         self.nbt_data: bytes = nbt_data
-    
+        self.named: bool = named
+        self.tagged: bool = tagged
+
         # Note: The size is used as an index for each method.
         self.size: int = 0
 
