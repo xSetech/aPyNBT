@@ -202,6 +202,7 @@ class TAG_List(TagIterable):
         # element.
         for index in range(array_size):
             tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[self.size:], named=False, tagged=False)
+            self.TagPayload.append(tag)
             self.checkpoint(tag.size)
 
 
