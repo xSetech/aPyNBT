@@ -48,7 +48,7 @@ def main():
     print('-' * (32 + 1 + 3 + 1 + 5 + 2 + 24 + 2))
 
     # Data
-    tree = nbt.parse('level.dat.gz')
+    tree = nbt.deserialize_file('level.dat.gz')
     depth_first_printout(None, tree, level=0)
 
 

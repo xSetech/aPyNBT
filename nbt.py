@@ -326,11 +326,8 @@ TAG_TYPES: Dict[int, TagType] = {
 }
 
 
-# Actual work is done in here.
-def _deserialize(nbt_data: bytes) -> List[TagType]:
+def deserialize(nbt_data: bytes) -> List[TagType]:
     """ Deserialize NBT data and return a tree
-
-    All deserialize() methods for container types eventually call this.
     """
     nbt_tree = []  # this gets returned
     total_bytes = len(nbt_data)
@@ -344,9 +341,8 @@ def _deserialize(nbt_data: bytes) -> List[TagType]:
     return nbt_tree
 
 
-# Start here.
-def deserialize(filename: str) -> List[TagType]:
-    """ deserialize a GZip compressed NBT file
+def deserialize_file(filename: str) -> List[TagType]:
+    """ Deserialize a GZip compressed NBT file
     """
 
     # Take a compressed file and extract the compressed data
@@ -356,11 +352,5 @@ def deserialize(filename: str) -> List[TagType]:
     # Decompress the data
     decompressed_nbt_data = gzip.decompress(compressed_nbt_data)
 
-    # deserialize the data
-    #
-    #   The root node is special; it's always a compound tag.
-    #   Get the first byte from the decompressed data, lookup the tag type, and
-    #   instantiate it. Pass the array of bytes into the type's "deserialize" method.
-    #   The deserialize method will return the number of bytes deserialized. Subtract from
-    #   the total bytes to deserialize and continue until the value reaches zero.
-    return _deserialize(decompressed_nbt_data)
+    # Deserialize the data
+    return deserialize(decompressed_nbt_data)
