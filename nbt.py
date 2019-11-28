@@ -49,23 +49,25 @@ class TagType:
         """
         # The size of the name is give by two Big Endian bytes, offset one from
         # the first byte (the tag id).
+        string_size_width = 2  # length defined by a short
         string_size = int.from_bytes(
-            self.nbt_data[self.size:self.size+2],
+            self.nbt_data[self.size:self.size + string_size_width],
             byteorder='big',
             signed=False
         )
+        self.checkpoint(string_size_width)
 
-        # If the string size is 0, consider the name to be ""
+        # NOTE: I've yet to define whether TagName or TagPayload for TAG_String
+        # with a value of None has any semantic difference from emptry-string.
+        # As of writing this comment, a None-valued attribute just means the
+        # tag is "unnamed"; but we save the "named" attribute so that there's
+        # no ambiguity.
         if string_size == 0:
             self.TagName = ""
-            self.checkpoint(2)
+            return
 
-        # Otherwise, interpret the string name as UTF-8
-        string_index_start = self.size + 2
-        string_index_stop = string_index_start + string_size
-        self.TagName = self.nbt_data[string_index_start:string_index_stop].decode('utf-8')
-
-        self.checkpoint(2 + string_size)
+        self.TagName = self.nbt_data[self.size:self.size + string_size].decode('utf-8')
+        self.checkpoint(string_size)
 
     def parse_payload(self) -> int:
         raise NotImplementedError
@@ -137,13 +139,12 @@ class TAG_Byte_Array(TagType):
             byteorder='big',
             signed=False
         )
+        self.checkpoint(array_size_width)
 
         # Straight-forward walk of each byte, appending to the payload array.
-        array_index_start = self.size + array_size_width  # after the provided length
-        for index in range(array_size):
-            self.TagPayload.append(self.nbt_data[array_index_start:array_index_start + index + 1])
-        
-        self.checkpoint(array_size_width + array_size)
+        for _ in range(array_size):
+            self.TagPayload.append(self.nbt_data[self.size:self.size + 1])
+            self.checkpoint(1)
 
 
 class TAG_String(TagType):
@@ -155,16 +156,14 @@ class TAG_String(TagType):
             byteorder='big',
             signed=False
         )
+        self.checkpoint(string_size_width)
 
-        # Empty strings do not have payloads
         if string_size == 0:
-            self.checkpoint(string_size_width)
+            self.TagPayload = ""
+            return
 
-        string_index_start = self.size + string_size_width
-        string_index_stop = string_index_start + string_size
-        self.TagPayload = self.nbt_data[string_index_start:string_index_stop].decode('utf-8')
-
-        self.checkpoint(string_size_width + string_size)
+        self.TagPayload = self.nbt_data[self.size:self.size + string_size].decode('utf-8')
+        self.checkpoint(string_size)
 
 
 class TAG_List(TagType):
@@ -175,27 +174,24 @@ class TAG_List(TagType):
         # First, which determine the tag class:
         tag_id_width = 1  # byte
         tag_id = self.nbt_data[self.size:self.size + tag_id_width]
+        self.checkpoint(tag_id_width)
 
         # Second, determine how many of each tag class:
         array_size_width = 4  # int
-        array_size_index_start = self.size + tag_id_width
-        array_size_index_stop = array_size_index_start + array_size_width
         array_size = int.from_bytes(
-            self.nbt_data[array_size_index_start:array_size_index_stop],
+            self.nbt_data[self.size:self.size + array_size_width],
             byteorder='big',
             signed=False
         )
+        self.checkpoint(array_size_width)
 
         # The implementation here is a first guess of how Markus implemented
         # lists. I'm assuming the payload of each tag is back-to-back. That is,
         # it's just a compound tag without the tag id or name preceeding the
         # element.
-        offset = array_size_index_stop
         for index in range(array_size):
-            tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[offset:], named=False, tagged=False)
-            offset += tag.size
-
-        self.checkpoint(offset)
+            tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[self.size:], named=False, tagged=False)
+            self.checkpoint(tag.size)
 
 
 class TAG_Compound(TagType):
