@@ -261,52 +261,41 @@ class TAG_Compound(TagIterable):
                 break
 
 
-class TAG_Int_Array(TagIterable):
+class TagIterableNumeric(TagIterable):
+    """ Parent-class for lists of numerics
+    """
+
+    width = None
 
     def deserialize_payload(self):
         self.TagPayload: List[int] = []
-        array_value_width = 4  # we're creating a list of ints
-        array_size_width = 4   # an int provides the array length
+
+        # Determine the eventual number of elements in the list
+        array_size_width = 4   # int
         array_size = int.from_bytes(
-            self.nbt_data[self.size:self.size + array_size_width],
+            self.nbt_data[self.size:self.size + self.width],
             byteorder='big',
             signed=False
         )
         self.checkpoint(array_size_width)
 
-        # Straight-forward walk of each int, appending to the payload array.
+        # Straight-forward walk of each int/long, appending to the payload array.
         for _ in range(array_size):
             int_value = int.from_bytes(
-                self.nbt_data[self.size:self.size + array_value_width],
+                self.nbt_data[self.size:self.size + self.width],
                 byteorder='big',
                 signed=False
             )
             self.TagPayload.append(int_value)
-            self.checkpoint(array_value_width)
+            self.checkpoint(self.width)
 
 
-class TAG_Long_Array(TagIterable):
+class TAG_Int_Array(TagIterableNumeric):
+    width = 4  # int
 
-    def deserialize_payload(self):
-        self.TagPayload: List[int] = []
-        array_value_width = 8  # we're creating a list of longs
-        array_size_width = 4   # an int provides the array length
-        array_size = int.from_bytes(
-            self.nbt_data[self.size:self.size + array_size_width],
-            byteorder='big',
-            signed=False
-        )
-        self.checkpoint(array_size_width)
 
-        # Straight-forward walk of each int, appending to the payload array.
-        for _ in range(array_size):
-            int_value = int.from_bytes(
-                self.nbt_data[self.size:self.size + array_value_width],
-                byteorder='big',
-                signed=False
-            )
-            self.TagPayload.append(int_value)
-            self.checkpoint(array_value_width)
+class TAG_Long_Array(TagIterableNumeric):
+    width = 8  # long
 
 
 TAG_TYPES: Dict[int, TagType] = {
