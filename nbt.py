@@ -116,7 +116,7 @@ class TagType:
         assert self.size - self._prev_size >= 1  # all payloads use at least one byte
 
 
-    def deserialize_name(self) -> None:
+    def deserialize_name(self):
         """ Sets the TagName attribute
         """
         # The size of the name is give by two Big Endian bytes, offset one from
@@ -141,7 +141,7 @@ class TagType:
         self.TagName = self.nbt_data[self.size:self.size + string_size].decode('utf-8')
         self.checkpoint(string_size)
 
-    def deserialize_payload(self) -> int:
+    def deserialize_payload(self):
         """ Sets the TagPayload attribute
         """
         raise NotImplementedError
