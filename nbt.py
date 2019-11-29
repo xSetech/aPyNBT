@@ -145,6 +145,29 @@ class Tag:
 
     def deserialize_payload(self):
         """ Sets the payload attribute
+
+        This is specific to each tag and implemented in the respective tag class.
+        """
+        raise NotImplementedError
+
+    def serialize(self) -> bytes:
+        """ Returns this tag's representation in bytes
+        """
+        data = b''
+        data += b'0'  # TODO convert the tag id into a byte here
+        data += self.serialize_name()
+        data += self.serialize_payload()
+        return data
+
+    def serialize_name(self) -> bytes:
+        """ Convert the tag's name into its representation in bytes
+        """
+        pass  # TODO
+
+    def serialize_payload(self) -> bytes:
+        """ Convert the tag's payload into its presentation in bytes
+
+        This is specific to each tag and implemented in the respective tag class.
         """
         raise NotImplementedError
 
@@ -392,7 +415,10 @@ def deserialize(nbt_data: bytes) -> List[Tag]:
 def serialize(nbt_tree: List[Tag]) -> bytes:
     """ Serialize an NBT tree and return uncompressed bytes
     """
-    pass  # TODO
+    data = b''
+    for tag in nbt_tree:
+        data += tag.serialize()
+    return data
 
 
 def deserialize_file(filename: str) -> List[Tag]:
