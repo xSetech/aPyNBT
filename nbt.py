@@ -106,10 +106,12 @@ class Tag:
         if tagged:
             self.size += 1  # 1 byte processed (tag id)
 
-        # Tags in lists don't have a name.
         if named:
             self.deserialize_name()
             assert self.size - self._prev_size >= 2  # all strings use at least two bytes
+        else:
+            # Tags in lists don't have a name.
+            self.name = ""
 
         # Reminder: Payload parsing may recurse!
         self.deserialize_payload()
