@@ -269,22 +269,39 @@ class TAG_Double(TagFloat):
 
 class TagIterable(Tag):
     """ Parent-class for tags with an iterable payload
+
+    Use for tags where the payload is defined as an "array" in the NBT spec.
+
+    The spec defines the payload as being an array of packed tags without an id
+        or name field. This module uses types optimized for Python. For example,
+        TAG_Byte_Array's payload is a list of bytes rather than a list of id-less &
+        nameless TAG_Byte instances.
+
+    By definition, TAG_String is not considered iterable since it's payload is
+        not defined as an array in the spec. It therefore does not decend from this
+        class despite having a "string_size_width" attribute which is identical in
+        function to the "array_size_width" attribute.
     """
+
+    # Number of bytes that represent the number of elements in the iterable (if
+    # a length field is provided by the tag at all, e.g. TAG_Compound uses
+    # TAG_End to denote the end of its array).
+    array_size_width: int = None
 
 
 class TAG_Byte_Array(TagIterable):
-    
+
+    array_size_width = 4  # int
     payload: List[bytes] = None
 
     def deserialize_payload(self):
         self.payload = []
-        array_size_width = 4  # an int provides the array length
         array_size = int.from_bytes(
-            self.nbt_data[self.size:self.size + array_size_width],
+            self.nbt_data[self.size:self.size + self.array_size_width],
             byteorder='big',
             signed=False
         )
-        self.checkpoint(array_size_width)
+        self.checkpoint(self.array_size_width)
 
         # Straight-forward walk of each byte, appending to the payload array.
         for _ in range(array_size):
@@ -292,8 +309,7 @@ class TAG_Byte_Array(TagIterable):
             self.checkpoint(1)
 
     def serialize_payload(self) -> bytes:
-        array_size_width = 4  # an int provides the array length
-        data = len(self.payload).to_bytes(array_size_width, byteorder='big', signed=False)
+        data = len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
         for b in self.payload:
             data += b
         return data
@@ -302,15 +318,15 @@ class TAG_Byte_Array(TagIterable):
 class TAG_String(Tag):
 
     payload: str = None
+    string_size_width: int = 2  # short
 
     def deserialize_payload(self):
-        string_size_width = 2  # a short provides the string length
         string_size = int.from_bytes(
-            self.nbt_data[self.size:self.size + string_size_width],
+            self.nbt_data[self.size:self.size + self.string_size_width],
             byteorder='big',
             signed=False
         )
-        self.checkpoint(string_size_width)
+        self.checkpoint(self.string_size_width)
 
         if string_size == 0:
             self.payload = ""
@@ -320,15 +336,15 @@ class TAG_String(Tag):
         self.checkpoint(string_size)
 
     def serialize_payload(self) -> bytes:
-        array_size_width = 2  # a short provides the string length
         data = b''
-        data += len(self.payload).to_bytes(array_size_width, byteorder='big', signed=False)
+        data += len(self.payload).to_bytes(self.string_size_width, byteorder='big', signed=False)
         data += self.payload.encode('utf-8')
         return data
 
 
 class TAG_List(TagIterable):
 
+    array_size_width = 4  # int
     payload: List[Tag] = None
     _list_tid: int = None  # "A list with tags having a tid of _list_tid"
 
@@ -336,19 +352,17 @@ class TAG_List(TagIterable):
         self.payload = []
 
         # Determine the tag type; this only gives us the class to instantiate
-        tag_id_width = 1  # byte
-        tag_id = self.nbt_data[self.size:self.size + tag_id_width][0]
-        self._list_tid = tag_id  # needed for serialization
-        self.checkpoint(tag_id_width)
+        tag_id = self.nbt_data[self.size:self.size + 1][0]
+        self._list_tid = tag_id  # save for serialization
+        self.checkpoint(1)
 
         # Determine the eventual number of elements in the list
-        array_size_width = 4  # int
         array_size = int.from_bytes(
-            self.nbt_data[self.size:self.size + array_size_width],
+            self.nbt_data[self.size:self.size + self.array_size_width],
             byteorder='big',
             signed=False
         )
-        self.checkpoint(array_size_width)
+        self.checkpoint(self.array_size_width)
 
         # The size of each tag isn't known ahead of time. All we know is that
         # we need to append `array_size` tags to the list. Successive offsets
@@ -360,10 +374,9 @@ class TAG_List(TagIterable):
             self.checkpoint(tag.size)
 
     def serialize_payload(self) -> bytes:
-        array_size_width = 4  # int
         data = b''
         data += self._list_tid.to_bytes(1, byteorder='big', signed=False)
-        data += len(self.payload).to_bytes(array_size_width, byteorder='big', signed=False)
+        data += len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
         for tag in self.payload:
             data += tag.serialize()
         return data
@@ -395,6 +408,7 @@ class TagIterableNumeric(TagIterable):
     """ Parent-class for lists of numerics
     """
 
+    array_size_width = 4  # int
     payload: List[int] = None
     width = None
 
@@ -402,13 +416,12 @@ class TagIterableNumeric(TagIterable):
         self.payload = []
 
         # Determine the eventual number of elements in the list
-        array_size_width = 4   # int
         array_size = int.from_bytes(
-            self.nbt_data[self.size:self.size + self.width],
+            self.nbt_data[self.size:self.size + self.array_size_width],
             byteorder='big',
             signed=False
         )
-        self.checkpoint(array_size_width)
+        self.checkpoint(self.array_size_width)
 
         # Straight-forward walk of each int/long, appending to the payload array.
         for _ in range(array_size):
@@ -421,9 +434,8 @@ class TagIterableNumeric(TagIterable):
             self.checkpoint(self.width)
 
     def serialize_payload(self) -> bytes:
-        array_size_width = 4  # int
         data = b''
-        data += len(self.payload).to_bytes(array_size_width, byteorder='big', signed=False)
+        data += len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
         for numeric in self.payload:
             data += numeric.to_bytes(
                 self.width,
