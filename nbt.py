@@ -362,28 +362,52 @@ TAG_TYPES: Dict[int, Tag] = {
 def deserialize(nbt_data: bytes) -> List[Tag]:
     """ Deserialize NBT data and return a tree
     """
-    nbt_tree = []  # this gets returned
+    nbt_tree = []
     total_bytes = len(nbt_data)
+
+    # Each iteration of this loop processes one tag at the root of the tree.
+    #
+    # If there's only one root, the value of tag.size is equal to the total
+    # size (in bytes) of the data itself (since the one and only root tag
+    # comprises the entire data). If not, the bytes following the tag are
+    # considered a new tag.
     remaining_bytes = total_bytes
     while remaining_bytes > 0:
+
         index = total_bytes - remaining_bytes
         tag_id = nbt_data[index:][0]
         tag = TAG_TYPES[tag_id](tag_id, nbt_data[index:])
+
+        # This assert prevents the while loop from spinning forever in the
+        # highly-unlikely event of tag.size being zero or negative (most likely
+        # due to a bug).
+        assert tag.size >= 1
+
         remaining_bytes -= tag.size
         nbt_tree.append(tag)
+
     return nbt_tree
+
+
+def serialize(nbt_tree: List[Tag]) -> bytes:
+    """ Serialize an NBT tree and return uncompressed bytes
+    """
+    pass  # TODO
 
 
 def deserialize_file(filename: str) -> List[Tag]:
     """ Deserialize a GZip compressed NBT file
     """
-
-    # Take a compressed file and extract the compressed data
     with open(filename, 'rb') as compressed_nbt_file:
-        compressed_nbt_data = compressed_nbt_file.read()
+        compressed_data = compressed_nbt_file.read()
+    decompressed_data: bytes = gzip.decompress(compressed_data)
+    return deserialize(decompressed_data)
 
-    # Decompress the data
-    decompressed_nbt_data = gzip.decompress(compressed_nbt_data)
 
-    # Deserialize the data
-    return deserialize(decompressed_nbt_data)
+def serialize_file(filename: str, nbt_tree: List[Tag]):
+    """ Serialize an NBT tree, compress the output, and to a file
+    """
+    data: bytes = serialize(nbt_tree)
+    compressed_data = gzip.compress(data)
+    with open(filename, 'wb') as f:
+        f.write(compressed_data)
