@@ -20,7 +20,7 @@ Short summary:
       the docs. It seems to work :) To elaborate...
 
     - NBT is conceptually about "tags", which are a triple of data. See the
-      Tag class's TagID, TagName, and TagPayload attributes. The
+      Tag class's tid, name, and payload attributes. The
       documentation sometimes uses the names of specific tags (e.g. TAG_String,
       TAG_Int, etc) to refer to the size of attributes or size of elements of
       an array rather than literally the three attributes (id, name, payload)
@@ -45,9 +45,9 @@ from typing import Any, Dict, List, Tuple
 
 class Tag:
 
-    TagID: int = None
-    TagName: str = None
-    TagPayload: Any = None
+    tid: int = None
+    name: str = None
+    payload: Any = None
 
     def __init__(self, tagID: int, nbt_data: bytes, named: bool = True, tagged: bool = True):
         """ Instantiation for all decendent tag types
@@ -55,7 +55,7 @@ class Tag:
         The purpose of this method is to populate the three tag attributes (id,
         name, and payload). Additional attributes are created for convinience
         (e.g. tagID doesn't actually need to be passed to get the tag name and
-        tag payload). The "TagName" and "TagPayload" attributes are populated
+        tag payload). The "name" and "payload" attributes are populated
         based on data in the byte array "nbt_data".
         
         Args:
@@ -72,16 +72,16 @@ class Tag:
                 TAG_List payload area).
 
             named::bool
-                Does the tag have bytes in nbt_data corresponding to the TagName attribute?
+                Does the tag have bytes in nbt_data corresponding to the name attribute?
 
             tagged::bool
-                Does the tag have bytes in nbt_data corresponding to the TagID attribute?
+                Does the tag have bytes in nbt_data corresponding to the tid attribute?
 
         Note that TAG_End is a special case of just a single byte of zero. You
         can think of it as a tag without bytes in nbt_data corresponding to the
-        TagName or TagPayload attributes.
+        name or payload attributes.
         """
-        self.TagID = tagID
+        self.tid = tagID
         self.nbt_data: bytes = nbt_data
         self.named: bool = named
         self.tagged: bool = tagged
@@ -117,7 +117,7 @@ class Tag:
 
 
     def deserialize_name(self):
-        """ Sets the TagName attribute
+        """ Sets the name attribute
         """
         # The size of the name is give by two Big Endian bytes, offset one from
         # the first byte (the tag id).
@@ -129,20 +129,20 @@ class Tag:
         )
         self.checkpoint(string_size_width)
 
-        # NOTE: I've yet to define whether TagName or TagPayload for TAG_String
+        # NOTE: I've yet to define whether name or payload for TAG_String
         # with a value of None has any semantic difference from emptry-string.
         # As of writing this comment, a None-valued attribute just means the
         # tag is "unnamed"; but we save the "named" attribute so that there's
         # no ambiguity.
         if string_size == 0:
-            self.TagName = ""
+            self.name = ""
             return
 
-        self.TagName = self.nbt_data[self.size:self.size + string_size].decode('utf-8')
+        self.name = self.nbt_data[self.size:self.size + string_size].decode('utf-8')
         self.checkpoint(string_size)
 
     def deserialize_payload(self):
-        """ Sets the TagPayload attribute
+        """ Sets the payload attribute
         """
         raise NotImplementedError
 
@@ -161,11 +161,11 @@ class TagInt(Tag):
     """ Parent-class for tags with an integer-typed payload
     """
 
-    TagPayload: int = None
+    payload: int = None
     width: int = None
 
     def deserialize_payload(self):
-        self.TagPayload = int.from_bytes(
+        self.payload = int.from_bytes(
             self.nbt_data[self.size:self.size+self.width],
             byteorder='big',
             signed=True
@@ -193,12 +193,12 @@ class TagFloat(Tag):
     """ Parent class for floating point tag types
     """
 
-    TagPayload: bytes = None  # TODO make this a float
+    payload: bytes = None  # TODO make this a float
     width: int = None
 
     def deserialize_payload(self):
         # TODO cast this value to a float
-        self.TagPayload = self.nbt_data[self.size:self.size + self.width]
+        self.payload = self.nbt_data[self.size:self.size + self.width]
         self.checkpoint(self.width)
 
 
@@ -217,10 +217,10 @@ class TagIterable(Tag):
 
 class TAG_Byte_Array(TagIterable):
     
-    TagPayload: List[bytes] = None
+    payload: List[bytes] = None
 
     def deserialize_payload(self):
-        self.TagPayload = []
+        self.payload = []
         array_size_width = 4  # an int provides the array length
         array_size = int.from_bytes(
             self.nbt_data[self.size:self.size + array_size_width],
@@ -231,13 +231,13 @@ class TAG_Byte_Array(TagIterable):
 
         # Straight-forward walk of each byte, appending to the payload array.
         for _ in range(array_size):
-            self.TagPayload.append(self.nbt_data[self.size:self.size + 1])
+            self.payload.append(self.nbt_data[self.size:self.size + 1])
             self.checkpoint(1)
 
 
 class TAG_String(Tag):
 
-    TagPayload: str = None
+    payload: str = None
 
     def deserialize_payload(self):
         string_size_width = 2  # a short provides the string length
@@ -249,19 +249,19 @@ class TAG_String(Tag):
         self.checkpoint(string_size_width)
 
         if string_size == 0:
-            self.TagPayload = ""
+            self.payload = ""
             return
 
-        self.TagPayload = self.nbt_data[self.size:self.size + string_size].decode('utf-8')
+        self.payload = self.nbt_data[self.size:self.size + string_size].decode('utf-8')
         self.checkpoint(string_size)
 
 
 class TAG_List(TagIterable):
 
-    TagPayload: List[Tag] = None
+    payload: List[Tag] = None
 
     def deserialize_payload(self):
-        self.TagPayload = []
+        self.payload = []
 
         # Determine the tag type; this only gives us the class to instantiate
         tag_id_width = 1  # byte
@@ -283,21 +283,21 @@ class TAG_List(TagIterable):
         # previously deserialized tags.
         for _ in range(array_size):
             tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[self.size:], named=False, tagged=False)
-            self.TagPayload.append(tag)
+            self.payload.append(tag)
             self.checkpoint(tag.size)
 
 
 class TAG_Compound(TagIterable):
 
-    TagPayload: List[Tag] = None
+    payload: List[Tag] = None
 
     def deserialize_payload(self):
-        self.TagPayload = []
+        self.payload = []
         while True:
             tag_id = self.nbt_data[self.size:][0]
             tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[self.size:])
             self.checkpoint(tag.size)
-            self.TagPayload.append(tag)
+            self.payload.append(tag)
             if isinstance(tag, TAG_End):
                 break
 
@@ -306,11 +306,11 @@ class TagIterableNumeric(TagIterable):
     """ Parent-class for lists of numerics
     """
 
-    TagPayload: List[int] = None
+    payload: List[int] = None
     width = None
 
     def deserialize_payload(self):
-        self.TagPayload = []
+        self.payload = []
 
         # Determine the eventual number of elements in the list
         array_size_width = 4   # int
@@ -328,7 +328,7 @@ class TagIterableNumeric(TagIterable):
                 byteorder='big',
                 signed=False
             )
-            self.TagPayload.append(int_value)
+            self.payload.append(int_value)
             self.checkpoint(self.width)
 
 
