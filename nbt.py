@@ -161,6 +161,7 @@ class TagInt(TagType):
     """ Parent-class for tags with an integer-typed payload
     """
 
+    TagPayload: int = None
     width: int = None
 
     def deserialize_payload(self):
@@ -192,6 +193,7 @@ class TagFloat(TagType):
     """ Parent class for floating point tag types
     """
 
+    TagPayload: bytes = None  # TODO make this a float
     width: int = None
 
     def deserialize_payload(self):
@@ -215,8 +217,10 @@ class TagIterable(TagType):
 
 class TAG_Byte_Array(TagIterable):
     
+    TagPayload: List[bytes] = None
+
     def deserialize_payload(self):
-        self.TagPayload: List[bytes] = []
+        self.TagPayload = []
         array_size_width = 4  # an int provides the array length
         array_size = int.from_bytes(
             self.nbt_data[self.size:self.size + array_size_width],
@@ -232,6 +236,8 @@ class TAG_Byte_Array(TagIterable):
 
 
 class TAG_String(TagType):
+
+    TagPayload: str = None
 
     def deserialize_payload(self):
         string_size_width = 2  # a short provides the string length
@@ -252,8 +258,10 @@ class TAG_String(TagType):
 
 class TAG_List(TagIterable):
 
+    TagPayload: List[TagType] = None
+
     def deserialize_payload(self):
-        self.TagPayload: List[TagType] = []
+        self.TagPayload = []
 
         # Determine the tag type; this only gives us the class to instantiate
         tag_id_width = 1  # byte
@@ -281,8 +289,10 @@ class TAG_List(TagIterable):
 
 class TAG_Compound(TagIterable):
 
+    TagPayload: List[TagType] = None
+
     def deserialize_payload(self):
-        self.TagPayload: List[TagType] = []
+        self.TagPayload = []
         while True:
             tag_id = self.nbt_data[self.size:][0]
             tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[self.size:])
@@ -296,10 +306,11 @@ class TagIterableNumeric(TagIterable):
     """ Parent-class for lists of numerics
     """
 
+    TagPayload: List[int] = None
     width = None
 
     def deserialize_payload(self):
-        self.TagPayload: List[int] = []
+        self.TagPayload = []
 
         # Determine the eventual number of elements in the list
         array_size_width = 4   # int
