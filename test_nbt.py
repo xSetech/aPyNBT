@@ -36,3 +36,55 @@ def test_reserialize_reference_compared():
     assert data == original_data
 
 
+def test_tag_end():
+    pass
+
+
+def test_tag_byte():
+    pass
+
+
+def test_tag_short():
+    pass
+
+
+def test_tag_int():
+    pass
+
+
+def test_tag_long():
+    pass
+
+
+def test_tag_float():
+    pass
+
+
+def test_tag_double():
+    pass
+
+
+def test_tag_byte_array():
+    pass
+
+
+def test_tag_string():
+    pass
+
+
+def test_tag_list():
+    pass
+
+
+def test_tag_compound():
+    pass
+
+
+def test_tag_int_array():
+    pass
+
+
+def test_tag_long_array():
+    pass
+
+
