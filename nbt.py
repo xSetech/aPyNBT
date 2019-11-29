@@ -49,14 +49,13 @@ class Tag:
     name: str = None
     payload: Any = None
 
-    def __init__(self, tagID: int, nbt_data: bytes, named: bool = True, tagged: bool = True):
+    def __init__(self, nbt_data: bytes, named: bool = True, tagged: bool = True):
         """ Instantiation for all decendent tag types
 
         The purpose of this method is to populate the three tag attributes (id,
-        name, and payload). Additional attributes are created for convinience
-        (e.g. tagID doesn't actually need to be passed to get the tag name and
-        tag payload). The "name" and "payload" attributes are populated
-        based on data in the byte array "nbt_data".
+        name, and payload). Additional attributes are set for programmer
+        convinience. The "name" and "payload" attributes are populated based on
+        data in the byte array "nbt_data".
         
         Args:
 
@@ -81,10 +80,20 @@ class Tag:
         can think of it as a tag without bytes in nbt_data corresponding to the
         name or payload attributes.
         """
-        self.tid = tagID
         self.nbt_data: bytes = nbt_data
         self.named: bool = named
         self.tagged: bool = tagged
+
+        # The tag id is found by looking up the specific tag type in the tag id
+        # to tag type mapping.
+        for tag_id, tag_class in TAG_TYPES.items():
+            if isinstance(self, tag_class):
+                self.tid = tag_id
+                break
+        else:
+            # This is only reachable if there's a bug or if there is an attempt
+            # to instantiate one of the parent tag classes.
+            raise ValueError(f"No tag id is defined for an instance of {self}")
 
         # self.size is used as an index into self.nbt_data in each
         # deserialize_* method. When each method is done processing a block of
@@ -369,7 +378,7 @@ class TAG_List(TagIterable):
         # into the data are determined by the sum of the sizes of the
         # previously deserialized tags.
         for _ in range(array_size):
-            tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[self.size:], named=False, tagged=False)
+            tag = TAG_TYPES[tag_id](self.nbt_data[self.size:], named=False, tagged=False)
             self.payload.append(tag)
             self.checkpoint(tag.size)
 
@@ -390,7 +399,7 @@ class TAG_Compound(TagIterable):
         self.payload = []
         while True:
             tag_id = self.nbt_data[self.size:][0]
-            tag = TAG_TYPES[tag_id](tag_id, self.nbt_data[self.size:])
+            tag = TAG_TYPES[tag_id](self.nbt_data[self.size:])
             self.checkpoint(tag.size)
             self.payload.append(tag)
             if isinstance(tag, TAG_End):
@@ -487,7 +496,7 @@ def deserialize(nbt_data: bytes) -> List[Tag]:
 
         index = total_bytes - remaining_bytes
         tag_id = nbt_data[index:][0]
-        tag = TAG_TYPES[tag_id](tag_id, nbt_data[index:])
+        tag = TAG_TYPES[tag_id](nbt_data[index:])
 
         # This assert prevents the while loop from spinning forever in the
         # highly-unlikely event of tag.size being zero or negative (most likely
