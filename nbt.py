@@ -415,7 +415,7 @@ class TagIterableNumeric(TagIterable):
             int_value = int.from_bytes(
                 self.nbt_data[self.size:self.size + self.width],
                 byteorder='big',
-                signed=False
+                signed=True
             )
             self.payload.append(int_value)
             self.checkpoint(self.width)
@@ -428,7 +428,7 @@ class TagIterableNumeric(TagIterable):
             data += numeric.to_bytes(
                 self.width,
                 byteorder='big',
-                signed=False
+                signed=True
             )
         return data
 
