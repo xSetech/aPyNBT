@@ -222,6 +222,9 @@ class TagInt(Tag):
         )
         self.checkpoint(self.width)
 
+    def serialize_payload(self) -> bytes:
+        return self.payload.to_bytes(self.width, byteorder='big', signed=True)
+
 
 class TAG_Byte(TagInt):
     width = 1
@@ -250,6 +253,10 @@ class TagFloat(Tag):
         # TODO cast this value to a float
         self.payload = self.nbt_data[self.size:self.size + self.width]
         self.checkpoint(self.width)
+
+    def serialize_payload(self) -> bytes:
+        # TODO actual deserialization of a float
+        return self.payload
 
 
 class TAG_Float(TagFloat):
@@ -284,6 +291,13 @@ class TAG_Byte_Array(TagIterable):
             self.payload.append(self.nbt_data[self.size:self.size + 1])
             self.checkpoint(1)
 
+    def serialize_payload(self) -> bytes:
+        array_size_width = 4  # an int provides the array length
+        data = len(self.payload).to_bytes(array_size_width, byteorder='big', signed=False)
+        for b in self.payload:
+            data += b
+        return data
+
 
 class TAG_String(Tag):
 
@@ -305,10 +319,18 @@ class TAG_String(Tag):
         self.payload = self.nbt_data[self.size:self.size + string_size].decode('utf-8')
         self.checkpoint(string_size)
 
+    def serialize_payload(self) -> bytes:
+        array_size_width = 2  # a short provides the string length
+        data = b''
+        data += len(self.payload).to_bytes(array_size_width, byteorder='big', signed=False)
+        data += self.payload.encode('utf-8')
+        return data
+
 
 class TAG_List(TagIterable):
 
     payload: List[Tag] = None
+    _list_tid: int = None  # "A list with tags having a tid of _list_tid"
 
     def deserialize_payload(self):
         self.payload = []
@@ -316,6 +338,7 @@ class TAG_List(TagIterable):
         # Determine the tag type; this only gives us the class to instantiate
         tag_id_width = 1  # byte
         tag_id = self.nbt_data[self.size:self.size + tag_id_width][0]
+        self._list_tid = tag_id  # needed for serialization
         self.checkpoint(tag_id_width)
 
         # Determine the eventual number of elements in the list
@@ -336,6 +359,15 @@ class TAG_List(TagIterable):
             self.payload.append(tag)
             self.checkpoint(tag.size)
 
+    def serialize_payload(self) -> bytes:
+        array_size_width = 4  # int
+        data = b''
+        data += self._list_tid.to_bytes(1, byteorder='big', signed=False)
+        data += len(self.payload).to_bytes(array_size_width, byteorder='big', signed=False)
+        for tag in self.payload:
+            data += tag.serialize()
+        return data
+
 
 class TAG_Compound(TagIterable):
 
@@ -350,6 +382,13 @@ class TAG_Compound(TagIterable):
             self.payload.append(tag)
             if isinstance(tag, TAG_End):
                 break
+
+    def serialize_payload(self) -> bytes:
+        assert isinstance(self.payload[-1], TAG_End)
+        data = b''
+        for tag in self.payload:
+            data += tag.serialize()
+        return data
 
 
 class TagIterableNumeric(TagIterable):
@@ -380,6 +419,18 @@ class TagIterableNumeric(TagIterable):
             )
             self.payload.append(int_value)
             self.checkpoint(self.width)
+
+    def serialize_payload(self) -> bytes:
+        array_size_width = 4  # int
+        data = b''
+        data += len(self.payload).to_bytes(array_size_width, byteorder='big', signed=False)
+        for numeric in self.payload:
+            data += numeric.to_bytes(
+                self.width,
+                byteorder='big',
+                signed=False
+            )
+        return data
 
 
 class TAG_Int_Array(TagIterableNumeric):
