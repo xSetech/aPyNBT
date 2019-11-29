@@ -14,7 +14,7 @@ def depth_first_printout(screen, tree, level):
         value = "unknown"
         size = "unknown"
 
-        if isinstance(branch, nbt.TagType):
+        if isinstance(branch, nbt.Tag):
             tagtype = str(nbt.TAG_TYPES[branch.TagID].__name__)
             if branch.TagName != None:
                 name = branch.TagName

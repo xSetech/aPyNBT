@@ -20,7 +20,7 @@ Short summary:
       the docs. It seems to work :) To elaborate...
 
     - NBT is conceptually about "tags", which are a triple of data. See the
-      TagType class's TagID, TagName, and TagPayload attributes. The
+      Tag class's TagID, TagName, and TagPayload attributes. The
       documentation sometimes uses the names of specific tags (e.g. TAG_String,
       TAG_Int, etc) to refer to the size of attributes or size of elements of
       an array rather than literally the three attributes (id, name, payload)
@@ -43,7 +43,7 @@ import gzip
 from typing import Any, Dict, List, Tuple
 
 
-class TagType:
+class Tag:
 
     TagID: int = None
     TagName: str = None
@@ -153,11 +153,11 @@ class TagType:
         self.size += amount
 
 
-class TAG_End(TagType):
-    """ Special-case; see the __init__ of TagType """
+class TAG_End(Tag):
+    """ Special-case; see the __init__ of Tag """
 
 
-class TagInt(TagType):
+class TagInt(Tag):
     """ Parent-class for tags with an integer-typed payload
     """
 
@@ -189,7 +189,7 @@ class TAG_Long(TagInt):
     width = 8
 
 
-class TagFloat(TagType):
+class TagFloat(Tag):
     """ Parent class for floating point tag types
     """
 
@@ -210,7 +210,7 @@ class TAG_Double(TagFloat):
     width = 8
 
 
-class TagIterable(TagType):
+class TagIterable(Tag):
     """ Parent-class for tags with an iterable payload
     """
 
@@ -235,7 +235,7 @@ class TAG_Byte_Array(TagIterable):
             self.checkpoint(1)
 
 
-class TAG_String(TagType):
+class TAG_String(Tag):
 
     TagPayload: str = None
 
@@ -258,7 +258,7 @@ class TAG_String(TagType):
 
 class TAG_List(TagIterable):
 
-    TagPayload: List[TagType] = None
+    TagPayload: List[Tag] = None
 
     def deserialize_payload(self):
         self.TagPayload = []
@@ -289,7 +289,7 @@ class TAG_List(TagIterable):
 
 class TAG_Compound(TagIterable):
 
-    TagPayload: List[TagType] = None
+    TagPayload: List[Tag] = None
 
     def deserialize_payload(self):
         self.TagPayload = []
@@ -340,7 +340,7 @@ class TAG_Long_Array(TagIterableNumeric):
     width = 8  # long
 
 
-TAG_TYPES: Dict[int, TagType] = {
+TAG_TYPES: Dict[int, Tag] = {
     0x00: TAG_End,
     0x01: TAG_Byte,
     0x02: TAG_Short,
@@ -357,7 +357,7 @@ TAG_TYPES: Dict[int, TagType] = {
 }
 
 
-def deserialize(nbt_data: bytes) -> List[TagType]:
+def deserialize(nbt_data: bytes) -> List[Tag]:
     """ Deserialize NBT data and return a tree
     """
     nbt_tree = []  # this gets returned
@@ -372,7 +372,7 @@ def deserialize(nbt_data: bytes) -> List[TagType]:
     return nbt_tree
 
 
-def deserialize_file(filename: str) -> List[TagType]:
+def deserialize_file(filename: str) -> List[Tag]:
     """ Deserialize a GZip compressed NBT file
     """
 
