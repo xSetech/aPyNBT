@@ -152,17 +152,42 @@ class Tag:
 
     def serialize(self) -> bytes:
         """ Returns this tag's representation in bytes
-        """
+        """        
+        # Special-case: TAG_End is defined as 0x00
+        if isinstance(self, TAG_End):
+            return b'\x00'
+
+        # The tag needs to atleast have been initialized!
+        assert self.tid is not None
+        assert self.named is not None
+        assert self.tagged is not None
+
         data = b''
-        data += b'0'  # TODO convert the tag id into a byte here
+        data += self.serialize_tid()
         data += self.serialize_name()
         data += self.serialize_payload()
         return data
 
+    def serialize_tid(self) -> bytes:
+        """ Convert the tag's id into its representation in bytes
+        """
+        if not self.tagged:
+            return b''
+        return self.tid.to_bytes(1, byteorder='big', signed=False)
+
     def serialize_name(self) -> bytes:
         """ Convert the tag's name into its representation in bytes
+
+        The tag name is one or two parts. The first part is two bytes
+            representing the length of the string, and then second is the
+            actual bytes of the string (utf-8 encoded).
         """
-        pass  # TODO
+        if not self.named:
+            return b''
+
+        encoded_string = self.name.encode('utf-8')
+        encoded_length = len(encoded_string).to_bytes(2, byteorder='big', signed=False)
+        return encoded_length + encoded_string
 
     def serialize_payload(self) -> bytes:
         """ Convert the tag's payload into its presentation in bytes
