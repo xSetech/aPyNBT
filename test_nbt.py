@@ -95,8 +95,35 @@ def test_tag_byte_array():
     pass
 
 
-def test_tag_string():
-    pass
+@pytest.mark.parametrize(
+    "string_val",
+    [
+        "",     # empty string
+        "a",    # single character
+        "abc",  # multiple characters
+
+        # all keyboard characters rolled into one string
+        "".join([chr(i) for i in range(32, 127)]),
+
+        "™",    # single non-ASCII character
+
+        # multiple non-ASCII characters
+        "単体テストを書く",
+    ]
+)
+def test_tag_string(string_val):
+    """ TAG_String
+    """
+    # Instantiate a TAG_String with a payload of "string_val". Assert that the
+    # payload value was set correctly.
+    tag = nbt.TAG_String(attrs=("", string_val), named=False, tagged=False)
+    assert tag.payload == string_val
+
+    # Serialize the previous tag and pass the resuting bytes to the constructor
+    # of a new tag. This tests whether we can both correctly serialize and then
+    # deserialize string values.
+    tag2 = nbt.TAG_String(nbt_data=tag.serialize(), named=False, tagged=False)
+    assert tag2.payload == string_val
 
 
 def test_tag_list():

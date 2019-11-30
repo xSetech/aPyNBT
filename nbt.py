@@ -358,8 +358,9 @@ class TAG_String(Tag):
 
     def serialize_payload(self) -> bytes:
         data = b''
-        data += len(self.payload).to_bytes(self.string_size_width, byteorder='big', signed=False)
-        data += self.payload.encode('utf-8')
+        encoded_string = self.payload.encode('utf-8')
+        data += len(encoded_string).to_bytes(self.string_size_width, byteorder='big', signed=False)
+        data += encoded_string
         return data
 
 
