@@ -99,14 +99,8 @@ class Tag:
             # to instantiate one of the parent tag classes.
             raise ValueError(f"No tag id is defined for an instance of {self}")
 
-        # self.size is used as an index into self.nbt_data in each
-        # deserialize_* method. When each method is done processing a block of
-        # bytes, the method calls self.checkpoint() to increment the value of
-        # self.size by the number of bytes processed. That way, the next code
-        # to process a block of bytes can use nbt_data[self.size:] to skip
-        # bytes that have already been processed. The other purpose of
-        # self.size is of course to get the total number of bytes the tag takes
-        # up in the NBT file.
+        # self.size is the number of bytes processed during deserialization.
+        # It's incremented by the checkpoint() method.
         self.size: int = 0
         self._prev_size: int = 0  # used for sanity checking
 
