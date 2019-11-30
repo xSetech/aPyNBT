@@ -49,7 +49,7 @@ class Tag:
     name: str = None
     payload: Any = None
 
-    def __init__(self, nbt_data: bytes, named: bool = True, tagged: bool = True):
+    def __init__(self, nbt_data: bytes = None, attrs: Tuple[str, Any] = None, named: bool = True, tagged: bool = True):
         """ Instantiation for all decendent tag types
 
         The purpose of this method is to populate the three tag attributes (id,
@@ -64,11 +64,21 @@ class Tag:
                 TAG_TYPES to get the specific tag class.
 
             nbt_data::bytes
-                A slice of bytes where the 0th index is the start of meaningful
-                data for this tag. For example, nbt_data[0] is usually the tag
-                id byte. The wording there is funny because not all tag
-                instances have a tag id byte (i.e. when they're packed into a
-                TAG_List payload area).
+                If this parameter is not None, then the name and payload
+                attributes will be determined by deserialization.
+
+                This is the binary/bytes representation of this object as it
+                appears in a decompressed NBT file. During deserialization,
+                this is passed a slice of bytes of the total decompressed NBT
+                file where the 0th index is the start of meaningful data for
+                this tag. For example, nbt_data[0] is usually the tag id byte.
+                The exact value depends on the context...
+
+            attrs::Tuple[str, Any]
+                If this parameter is not None, then the name and payload
+                attrbiutes will be set according to the elements of the tuple.
+                Deserialization will be skipped, even if the nbt_data parameter
+                is not None.
 
             named::bool
                 Does the tag have bytes in nbt_data corresponding to the name attribute?
@@ -81,6 +91,7 @@ class Tag:
         name or payload attributes.
         """
         self.nbt_data: bytes = nbt_data
+        self.attrs: Tuple[str, Any] = attrs
         self.named: bool = named
         self.tagged: bool = tagged
 
@@ -114,6 +125,20 @@ class Tag:
         # Tags in lists don't have a tag id byte.
         if tagged:
             self.size += 1  # 1 byte processed (tag id)
+
+        # If all attributes are known ahead of time, then skip deserialization
+        # of nbt_data (which is probably None if attrs is not None).
+        if attrs is not None:
+            name, payload = attrs
+            self.name = name
+            self.payload = payload
+            self.size = len(self.serialize())
+            return
+
+        # If there's nothing to deserialize, then the name and payload
+        # attributes can't be computed.
+        if nbt_data is None:
+            return
 
         if named:
             self.deserialize_name()
