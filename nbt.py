@@ -379,15 +379,28 @@ class TAG_String(Tag):
 class TAG_List(TagIterable):
 
     array_size_width = 4  # int
+    tagID: int = None  # "A list with tags having a tid of tagID"
     payload: List[Tag] = None
-    _list_tid: int = None  # "A list with tags having a tid of _list_tid"
+
+    def __init__(self, *args, tagID: int = None, **kwargs,):
+        """
+        The "tagID" attribute (as its called in the spec) is unique to
+            TAG_List. The value gives the type of the tags stored in the payload.
+            An empty Python list drops this information (which could be recovered
+            by otherwise looking at the first element of the list).
+
+        self.serialize() will fail with an AssertionError if this attribute is
+            not set and the payload is an empty list!
+        """
+        self.tagID = tagID
+        super(TAG_List, self).__init__(*args, **kwargs)
 
     def deserialize_payload(self):
         self.payload = []
 
         # Determine the tag type; this only gives us the class to instantiate
         tag_id = self.nbt_data[self.size:self.size + 1][0]
-        self._list_tid = tag_id  # save for serialization
+        self.tagID = tag_id  # save for serialization
         self.checkpoint(1)
 
         # Determine the eventual number of elements in the list
@@ -408,8 +421,16 @@ class TAG_List(TagIterable):
             self.checkpoint(tag.size)
 
     def serialize_payload(self) -> bytes:
+        # See the docstring for TAG_List's constructor.
+        assert self.tagID or self.payload
+
+        # self.tagID will not have been set if deserialization was skipped. We
+        #   can recover it by looking at the first element of the list.
+        if not self.tagID:
+            self.tagID = self.payload[0].tid
+
         data = b''
-        data += self._list_tid.to_bytes(1, byteorder='big', signed=False)
+        data += self.tagID.to_bytes(1, byteorder='big', signed=False)
         data += len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
         for tag in self.payload:
             data += tag.serialize()
