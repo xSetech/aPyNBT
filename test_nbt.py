@@ -4,7 +4,11 @@
 
 import gzip
 
+import pytest
+
 import nbt
+
+TAG_CLASSES = [tag_class for tag_class in nbt.TAG_TYPES.values()]
 
 
 def test_deserialize_reference():
@@ -37,7 +41,30 @@ def test_reserialize_reference_compared():
 
 
 def test_tag_end():
-    pass
+    """ Test TAG_End
+    """
+    # No parameters are required to instantiate TAG_End since it's a special
+    # case: just a zero byte.
+    nbt.TAG_End().serialize() == b'\x00'
+    nbt.TAG_End().size == 1
+
+
+@pytest.mark.parametrize(
+    "tag_class",
+    [tag_class for tag_class in TAG_CLASSES if tag_class in nbt.TagInt.__subclasses__()]
+)
+def test_serialization_lengths_numerics(tag_class):
+    """
+    Confirm TagInt's shared serialization method preserves the type width
+    """
+    tag = tag_class(attrs=("", 9))  # 9 is a random value
+    assert len(tag.serialize()) == 1 + 2 + tag.width  # 4
+
+    tag = tag_class(attrs=("", 9), tagged=False)
+    assert len(tag.serialize()) == 0 + 2 + tag.width  # 3
+
+    tag = tag_class(attrs=("", 9), named=False)
+    assert len(tag.serialize()) == 1 + 0 + tag.width  # 2
 
 
 def test_tag_byte():
