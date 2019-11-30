@@ -10,27 +10,21 @@ https://web.archive.org/web/20110723210920/http://www.minecraft.net/docs/NBT.txt
 
 Short summary:
 
-    - NBT files are GZip compressed. In order to work with the data inside,
-      they must obviously be decompressed. This module accepts either a
-      filename which contains compressed data, or a blob of decompressed data.
+    - The documentation is fuzzy about definitions. There are some guesses and
+      assumptions built into this that aren't spelled out in the docs. It seems
+      to work :) To elaborate...
 
-    - The documentation is fuzzy about definitions and I haven't searched for
-      whether Mojang provides any kind of implementation guidelines. There are
-      some guesses and assumptions built into this that aren't spelled out in
-      the docs. It seems to work :) To elaborate...
-
-    - NBT is conceptually about "tags", which are a triple of data. See the
-      Tag class's tid, name, and payload attributes. The
-      documentation sometimes uses the names of specific tags (e.g. TAG_String,
-      TAG_Int, etc) to refer to the size of attributes or size of elements of
-      an array rather than literally the three attributes (id, name, payload)
-      packed together. For example, a TAG_String in Markus' txt spec has a
-      "length" attribute defined as a "TAG_Short". The length attribute is just
-      a `short`, or 2 8-bit bytes. He could have just said "it's 16 bits", but
-      whatever- baby's first data serialization format lol. TAG_End is another
-      example of a tag which breaks the general format (id, name, payload).
-      This tag is just a single zero-valued byte (0x00).  There's no name or
-      payload.
+    - NBT is conceptually about "tags", which are a triple of data. See the Tag
+      class's tid, name, and payload attributes. The documentation sometimes
+      uses the names of specific tags (e.g. TAG_String, TAG_Int, etc) to refer
+      to the size of attributes or size of elements of an array rather than
+      literally the three attributes (id, name, payload) packed together. For
+      example, a TAG_String in Markus' txt spec has a "length" attribute
+      defined as a "TAG_Short". The length attribute is just a `short`, or 2
+      8-bit bytes. He could have just said "it's 16 bits", but whatever- baby's
+      first data serialization format lol. TAG_End is another example of a tag
+      which breaks the general format (id, name, payload).  This tag is just a
+      single zero-valued byte (0x00). There's no name or payload.
 
     - Files that use NBT create a tree structure. The spec doesn't not clarify
       what kind of tree. In practice, there is one root which is always the
@@ -565,12 +559,18 @@ def serialize(nbt_tree: List[Tag]) -> bytes:
 
 
 def deserialize_file(filename: str) -> List[Tag]:
-    """ Deserialize a GZip compressed NBT file
+    """ Deserialize a GZip compressed or uncompressed NBT file
     """
     with open(filename, 'rb') as compressed_nbt_file:
-        compressed_data = compressed_nbt_file.read()
-    decompressed_data: bytes = gzip.decompress(compressed_data)
-    return deserialize(decompressed_data)
+        file_data = compressed_nbt_file.read()
+
+    # The file may or may not be compressed. Check for the magic number to know!
+    # https://www.onicos.com/staff/iz/formats/gzip.html
+    if file_data[0:2] == b'\x1f\x8b':
+        decompressed_data: bytes = gzip.decompress(file_data)
+        return deserialize(decompressed_data)
+
+    return deserialize(file_data)
 
 
 def serialize_file(filename: str, nbt_tree: List[Tag]):
