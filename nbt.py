@@ -33,7 +33,6 @@ Short summary:
 This was written and tested using Python 3.6
 """
 
-import gzip
 from typing import Any, Dict, List, Tuple
 
 
@@ -561,22 +560,25 @@ def serialize(nbt_tree: List[Tag]) -> bytes:
 def deserialize_file(filename: str) -> List[Tag]:
     """ Deserialize a GZip compressed or uncompressed NBT file
     """
-    with open(filename, 'rb') as compressed_nbt_file:
-        file_data = compressed_nbt_file.read()
+    with open(filename, 'rb') as nbt_file:
+        file_data = nbt_file.read()
 
     # The file may or may not be compressed. Check for the magic number to know!
     # https://www.onicos.com/staff/iz/formats/gzip.html
     if file_data[0:2] == b'\x1f\x8b':
+        import gzip
         decompressed_data: bytes = gzip.decompress(file_data)
         return deserialize(decompressed_data)
 
     return deserialize(file_data)
 
 
-def serialize_file(filename: str, nbt_tree: List[Tag]):
-    """ Serialize an NBT tree, compress the output, and to a file
+def serialize_file(filename: str, nbt_tree: List[Tag], compress: bool = True):
+    """ Serialize an NBT tree, optionally compress the output, and to a file
     """
     data: bytes = serialize(nbt_tree)
-    compressed_data = gzip.compress(data)
+    if compress:
+        import gzip
+        data = gzip.compress(data)
     with open(filename, 'wb') as f:
-        f.write(compressed_data)
+        f.write(data)
