@@ -53,7 +53,7 @@ def test_tag_end():
     "tag_class",
     [tag_class for tag_class in TAG_CLASSES if tag_class in nbt.TagInt.__subclasses__()]
 )
-def test_serialization_lengths_numerics(tag_class):
+def test_tagint_serialization_lengths(tag_class):
     """
     Confirm TagInt's shared serialization method preserves the type width
     """
@@ -66,21 +66,24 @@ def test_serialization_lengths_numerics(tag_class):
     tag = tag_class(attrs=("", 9), named=False)
     assert len(tag.serialize()) == 1 + 0 + tag.width  # 2
 
-
-def test_tag_byte():
-    pass
-
-
-def test_tag_short():
-    pass
+    tag = tag_class(attrs=("named tag", 9), named=True, tagged=False)
+    assert len(tag.serialize()) > 1 + 2 + tag.width   # at least
 
 
-def test_tag_int():
-    pass
-
-
-def test_tag_long():
-    pass
+@pytest.mark.parametrize(
+    "tag",
+    [tag_class(attrs=(name, 42), named=(not not name), tagged=tagged)
+        for tag_class in TAG_CLASSES if tag_class in nbt.TagInt.__subclasses__()
+        for name in ("", "named tag")
+        for tagged in (True, False)
+    ]
+)
+def test_tagint_payload_serialization(tag):
+    for i in range(-10, 10):
+        tag.payload = i                     # property setter test
+        assert tag.payload == i             # property getter test
+        tag.deserialize(tag.serialize())    # assert reserialization doesnt mutate the payload value
+        assert tag.payload == i
 
 
 def test_tag_float():
