@@ -141,10 +141,6 @@ class Tag:
             self.size = 1  # 1 byte processed (tag id)
             return
 
-        # Tags in lists don't have a tag id byte.
-        if tagged:
-            self.size += 1  # 1 byte processed (tag id)
-
         # If all attributes are known ahead of time, then skip deserialization
         # of nbt_data (which is probably None if attrs is not None).
         if attrs is not None:
@@ -156,10 +152,8 @@ class Tag:
 
         # If there's nothing to deserialize, then the name and payload
         # attributes can't be computed.
-        if nbt_data is None:
-            return
-
-        self.deserialize(nbt_data)
+        if nbt_data is not None:
+            self.deserialize(nbt_data)
     
     def deserialize(self, data: bytes):
         """
@@ -169,12 +163,17 @@ class Tag:
         # Save the data so that deserialize_name() and deserialize_payload()
         # can reference it.
         self.nbt_data = data
+        self.size = 0
 
+        # Tags in lists don't have a tag id byte.
+        if self.tagged:
+            self.size += 1  # 1 byte processed (tag id)
+
+        # Tags in lists don't have a name.
         if self.named:
             self.deserialize_name()
             assert self.size - self._prev_size >= 2  # all strings use at least two bytes
         else:
-            # Tags in lists don't have a name.
             self.name = ""
 
         # Reminder: Payload parsing may recurse!
