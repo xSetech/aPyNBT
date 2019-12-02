@@ -38,9 +38,54 @@ from typing import Any, Dict, List, Tuple
 
 class Tag:
 
-    tid: int = None
-    name: str = None
-    payload: Any = None
+    _tid: int = None
+    _name: str = None
+    _payload: Any = None
+
+    @property
+    def tid(self) -> int:
+        """ Return the value of the tag's `tid` attribute
+
+        This is a read-only attribute that's directly associated with a
+        specific subclass of Tag as defined the NBT spec.
+        """
+        if self._tid is not None:
+            return self._tid
+
+        # The tag id is found by looking up the specific tag type in the tag id
+        # to tag type mapping.
+        for tag_id, tag_class in TAG_TYPES.items():
+            if isinstance(self, tag_class):
+                self._tid = tag_id
+                return tag_id
+        else:
+            # This is only reachable if there's a bug or if there is an attempt
+            # to instantiate one of the parent tag classes.
+            raise ValueError(f"No tag id is defined for an instance of {self}")
+
+    @property
+    def name(self) -> str:
+        """ Return the value of the tag's `name` attribute
+        """
+        return self._name
+
+    @name.setter
+    def name(self, value) -> str:
+        """ Set the value of the tag's `name` attribute
+        """
+        self._name = value
+
+    @property
+    def payload(self) -> Any:
+        """ Return the value of the tag's `payload` attribute
+        """
+        return self._payload
+
+    @payload.setter
+    def payload(self, value):
+        """ Set the value of the tag's `payload` attribute
+        """
+        self._payload = value
 
     def __init__(self, nbt_data: bytes = None, attrs: Tuple[str, Any] = None, named: bool = True, tagged: bool = True):
         """ Instantiation for all decendent tag types
@@ -87,17 +132,6 @@ class Tag:
         self.attrs: Tuple[str, Any] = attrs
         self.named: bool = named
         self.tagged: bool = tagged
-
-        # The tag id is found by looking up the specific tag type in the tag id
-        # to tag type mapping.
-        for tag_id, tag_class in TAG_TYPES.items():
-            if isinstance(self, tag_class):
-                self.tid = tag_id
-                break
-        else:
-            # This is only reachable if there's a bug or if there is an attempt
-            # to instantiate one of the parent tag classes.
-            raise ValueError(f"No tag id is defined for an instance of {self}")
 
         # self.size is the number of bytes processed during deserialization.
         # It's incremented by the checkpoint() method.
