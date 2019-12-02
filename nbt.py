@@ -128,8 +128,6 @@ class Tag:
         can think of it as a tag without bytes in nbt_data corresponding to the
         name or payload attributes.
         """
-        self.nbt_data: bytes = nbt_data
-        self.attrs: Tuple[str, Any] = attrs
         self.named: bool = named
         self.tagged: bool = tagged
 
@@ -161,7 +159,18 @@ class Tag:
         if nbt_data is None:
             return
 
-        if named:
+        self.deserialize(nbt_data)
+    
+    def deserialize(self, data: bytes):
+        """
+        Deserialize a blob of data and set the `name` and `payload` attributes
+            of the tag.
+        """
+        # Save the data so that deserialize_name() and deserialize_payload()
+        # can reference it.
+        self.nbt_data = data
+
+        if self.named:
             self.deserialize_name()
             assert self.size - self._prev_size >= 2  # all strings use at least two bytes
         else:
@@ -171,7 +180,6 @@ class Tag:
         # Reminder: Payload parsing may recurse!
         self.deserialize_payload()
         assert self.size - self._prev_size >= 1  # all payloads use at least one byte
-
 
     def deserialize_name(self):
         """ Sets the name attribute
