@@ -265,6 +265,11 @@ class Tag:
         self._prev_size = self.size
         self.size += amount
 
+    def __repr__(self) -> str:
+        """ See https://docs.python.org/3.6/reference/datamodel.html#object.__repr__
+        """
+        return f"<{self.__class__} size={self.size} name='{self._name}' named={self.named} tagged={self.tagged}>"
+
 
 class TAG_End(Tag):
     """ Special-case; see the __init__ of Tag """
