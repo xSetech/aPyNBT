@@ -86,16 +86,59 @@ def test_tagint_payload_serialization(tag):
         assert tag.payload == i
 
 
+def test_tag_byte_payload_validation():
+    tag = nbt.TAG_Byte(attrs=("", 42), named=False, tagged=False)
+
+    # Signed bytes are somewhere around the range [-128, 128]. First assert
+    # that a value well within that range is accepted by the setter, then
+    # assert that a value well outside that range is rejected by the setter.
+    tag.payload = 100
+    assert tag.payload == 100
+    tag.validate()
+
+    with pytest.raises(OverflowError):
+        tag.payload = 1000000
+        assert tag.payload == 1000000
+        tag.validate()
+
+    # The payload must be of type `int`
+    with pytest.raises(AssertionError):
+        tag.payload = "abc"
+        tag.validate()
+
+
 def test_tag_float():
-    pass
+    pass  # TODO
 
 
 def test_tag_double():
-    pass
+    pass  # TODO
 
 
-def test_tag_byte_array():
-    pass
+def test_tag_byte_array_payload_validation():
+    # Initialize a tag with an empty list and it's valid
+    tag = nbt.TAG_Byte_Array(attrs=("", []), named=False, tagged=False)
+    assert not tag.payload
+    tag.validate()
+
+    # A non-empty list of bytes is valid
+    tag.payload.append(b'\x00')
+    tag.validate()
+
+    # The payload must be a list of bytes
+    with pytest.raises(AssertionError):
+        tag.payload = "abc"
+        tag.validate()
+
+    # Each element of the list must be of type "bytes"
+    with pytest.raises(AssertionError):
+        tag.payload = [123]
+        tag.validate()
+
+    # Each element of the list must be one byte large
+    with pytest.raises(AssertionError):
+        tag.payload = [b'\xff\xff']
+        tag.validate()
 
 
 @pytest.mark.parametrize(
@@ -130,18 +173,54 @@ def test_tag_string(string_val):
 
 
 def test_tag_list():
-    pass
+    list_of_tag_strings = [
+        nbt.TAG_String(attrs=("", string_val), named=False, tagged=False)
+        for string_val in [
+            "abc",
+            "defghi",
+            "jkl",
+        ]
+    ]
+
+    # Initialize a TAG_List with an element type of TAG_String, and validate
+    # that an empty list is a valid payload.
+    tag = nbt.TAG_List(
+        attrs=("", []),
+        named=False,
+        tagged=False,
+        tagID=list_of_tag_strings[0].tid
+    )
+    tag.validate()
+
+    # A list of unnamed & untagged TAG_String instances is valid.
+    tag.payload = list_of_tag_strings
+    tag.validate()
+
+    # A tag that is named makes the payload invalid.
+    tag.payload[0].named = True
+    with pytest.raises(AssertionError):
+        tag.validate()
+
+    # A tag that is tagged makes the payload invalid.
+    tag.payload[0].named = False
+    tag.payload[0].tagged = True
+    with pytest.raises(AssertionError):
+        tag.validate()
 
 
 def test_tag_compound():
-    pass
+    tag_end = nbt.TAG_End()
 
+    # Initialize an empty TAG_Compound list
+    tag = nbt.TAG_Compound(attrs=("", [tag_end]), named=False, tagged=False)
+    tag.validate()
 
-def test_tag_int_array():
-    pass
+    # Add an element and validate
+    tag_string = nbt.TAG_String(attrs=("", "an example string"))
+    tag.payload = [tag_string, tag_end]
+    tag.validate()
 
-
-def test_tag_long_array():
-    pass
-
-
+    # A TAG_End is required at the end of the list
+    tag.payload = [tag_string]
+    with pytest.raises(AssertionError):
+        tag.validate()

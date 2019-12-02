@@ -39,8 +39,8 @@ from typing import Any, Dict, List, Tuple
 class Tag:
 
     _tid: int = None
-    _name: str = None
-    _payload: Any = None
+    name: str = None
+    payload: Any = None
 
     @property
     def tid(self) -> int:
@@ -62,30 +62,6 @@ class Tag:
             # This is only reachable if there's a bug or if there is an attempt
             # to instantiate one of the parent tag classes.
             raise ValueError(f"No tag id is defined for an instance of {self}")
-
-    @property
-    def name(self) -> str:
-        """ Return the value of the tag's `name` attribute
-        """
-        return self._name
-
-    @name.setter
-    def name(self, value) -> str:
-        """ Set the value of the tag's `name` attribute
-        """
-        self._name = value
-
-    @property
-    def payload(self) -> Any:
-        """ Return the value of the tag's `payload` attribute
-        """
-        return self._payload
-
-    @payload.setter
-    def payload(self, value):
-        """ Set the value of the tag's `payload` attribute
-        """
-        self._payload = value
 
     def __init__(self, nbt_data: bytes = None, attrs: Tuple[str, Any] = None, named: bool = True, tagged: bool = True):
         """ Instantiation for all decendent tag types
@@ -258,6 +234,15 @@ class Tag:
         """
         raise NotImplementedError
 
+    def validate(self):
+        """ Validate the current tag's payload
+
+        No return value; an exception is raised if validation fails.
+        Implementation is specific to each tag and implemented in the
+        respective tag class.
+        """
+        raise NotImplementedError
+
     def checkpoint(self, amount: int):
         """ Increase the value of self.size by some amount
         """
@@ -267,7 +252,7 @@ class Tag:
     def __repr__(self) -> str:
         """ See https://docs.python.org/3.6/reference/datamodel.html#object.__repr__
         """
-        return f"<{self.__class__} size={self.size} name='{self._name}' named={self.named} tagged={self.tagged}>"
+        return f"<{self.__class__} size={self.size} name='{self.name}' named={self.named} tagged={self.tagged}>"
 
 
 class TAG_End(Tag):
@@ -291,6 +276,10 @@ class TagInt(Tag):
 
     def serialize_payload(self) -> bytes:
         return self.payload.to_bytes(self.width, byteorder='big', signed=True)
+
+    def validate(self):
+        assert isinstance(self.payload, int)
+        self.payload.to_bytes(self.width, byteorder='big', signed=True)
 
 
 class TAG_Byte(TagInt):
@@ -324,6 +313,9 @@ class TagFloat(Tag):
     def serialize_payload(self) -> bytes:
         # TODO actual deserialization of a float
         return self.payload
+
+    def validate(self):
+        pass  # TODO
 
 
 class TAG_Float(TagFloat):
@@ -381,6 +373,13 @@ class TAG_Byte_Array(TagIterable):
             data += b
         return data
 
+    def validate(self):
+        assert isinstance(self.payload, list)
+        if self.payload:
+            for value in self.payload:
+                assert isinstance(value, bytes)
+                assert len(value) == 1
+
 
 class TAG_String(Tag):
 
@@ -408,6 +407,9 @@ class TAG_String(Tag):
         data += len(encoded_string).to_bytes(self.string_size_width, byteorder='big', signed=False)
         data += encoded_string
         return data
+
+    def validate(self):
+        assert isinstance(self.payload, str)
 
 
 class TAG_List(TagIterable):
@@ -470,6 +472,15 @@ class TAG_List(TagIterable):
             data += tag.serialize()
         return data
 
+    def validate(self):
+        assert isinstance(self.payload, list)
+        tag_classes = list(TAG_TYPES.values())
+        if self.payload:
+            for value in self.payload:
+                assert value.__class__ in tag_classes
+                assert not value.named
+                assert not value.tagged
+
 
 class TAG_Compound(TagIterable):
 
@@ -491,6 +502,14 @@ class TAG_Compound(TagIterable):
         for tag in self.payload:
             data += tag.serialize()
         return data
+
+    def validate(self):
+        assert isinstance(self.payload, list)
+        tag_classes = list(TAG_TYPES.values())
+        if self.payload:
+            for value in self.payload:
+                assert value.__class__ in tag_classes
+        assert isinstance(self.payload[-1], TAG_End)
 
 
 class TagIterableNumeric(TagIterable):
@@ -532,6 +551,13 @@ class TagIterableNumeric(TagIterable):
                 signed=True
             )
         return data
+
+    def validate(self):
+        assert isinstance(self.payload, list)
+        if self.payload:
+            for value in self.payload:
+                assert isinstance(value, int)
+                value.to_bytes(self.width, byteorder='big', signed=True)
 
 
 class TAG_Int_Array(TagIterableNumeric):
