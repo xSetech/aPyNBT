@@ -48,7 +48,7 @@ class Tag:
     name: str = None
     payload: Any = None
 
-    def __init__(self, nbt_data: bytes = None, attrs: Tuple[str, Any] = None, named: bool = True, tagged: bool = True):
+    def __init__(self, nbt_data: bytes = None, name: str = None, payload: Any = None, named: bool = True, tagged: bool = True):
         """ Instantiation for all decendent tag types
 
         The purpose of this method is to populate the three tag attributes (id,
@@ -64,20 +64,22 @@ class Tag:
 
             nbt_data::bytes
                 If this parameter is not None, then the name and payload
-                attributes will be determined by deserialization.
+                attributes will be determined by deserialization. Otherwise,
+                deserialization of either attribute will be skipped.
 
-                This is the binary/bytes representation of this object as it
-                appears in a decompressed NBT file. During deserialization,
-                this is passed a slice of bytes of the total decompressed NBT
-                file where the 0th index is the start of meaningful data for
-                this tag. For example, nbt_data[0] is usually the tag id byte.
-                The exact value depends on the context...
+                This is at least the binary/bytes representation of a tag
+                instance as it appears in a decompressed NBT file. Unused or
+                unrelated bytes are permitted at the end. Therefore, in
+                particular during deserialization, this *is not* the same as
+                the return value from the serialize() method.
 
-            attrs::Tuple[str, Any]
-                If this parameter is not None, then the name and payload
-                attrbiutes will be set according to the elements of the tuple.
-                Deserialization will be skipped, even if the nbt_data parameter
-                is not None.
+            name::str
+                If this parameter is not None, then the tag's "name" attribute
+                will be set to this value.
+
+            payload::Any
+                If this parameter is not None, then the tag's "payload"
+                attribute will be set to this value.
 
             named::bool
                 Does the tag have bytes in nbt_data corresponding to the name attribute?
@@ -93,29 +95,28 @@ class Tag:
         self.tagged: bool = tagged
 
         # self.size is the number of bytes processed during deserialization.
-        # It's incremented by the checkpoint() method.
+        # It's incremented by the checkpoint() method. If the value is zero,
+        # then no deserialization has occured.
         self.size: int = 0
         self._prev_size: int = 0  # used for sanity checking
 
-        # End tags are basically a tag id without a name or payload
+        # Special-case; TAG_End are basically a tag id without a name or payload
         if isinstance(self, TAG_End):
             self.size = 1  # 1 byte processed (tag id)
             return
 
-        # If all attributes are known ahead of time, then skip deserialization
-        # of nbt_data (which is probably None if attrs is not None).
-        if attrs is not None:
-            name, payload = attrs
-            self.name = name
-            self.payload = payload
-            self.size = len(self.serialize())
-            return
-
         # If there's nothing to deserialize, then the name and payload
-        # attributes can't be computed.
+        # attributes can't be collected.
         if nbt_data is not None:
             self.deserialize(nbt_data)
-    
+
+        # Regardless of whether deserialization was skipped, if either "name"
+        # or "payload" are passed as parameters, use them.
+        if name is not None:
+            self.name = name
+        if payload is not None:
+            self.payload = payload
+
     def deserialize(self, data: bytes):
         """
         Deserialize a blob of data and set the `name` and `payload` attributes

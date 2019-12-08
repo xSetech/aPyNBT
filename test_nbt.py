@@ -55,22 +55,22 @@ def test_tagint_serialization_lengths(tag_class):
     """
     Confirm TagInt's shared serialization method preserves the type width
     """
-    tag = tag_class(attrs=("", 9))  # 9 is a random value
+    tag = tag_class(name="", payload=9)  # 9 is a random value
     assert len(tag.serialize()) == 1 + 2 + tag.width  # 4
 
-    tag = tag_class(attrs=("", 9), tagged=False)
+    tag = tag_class(name="", payload=9, tagged=False)
     assert len(tag.serialize()) == 0 + 2 + tag.width  # 3
 
-    tag = tag_class(attrs=("", 9), named=False)
+    tag = tag_class(payload=9, named=False)
     assert len(tag.serialize()) == 1 + 0 + tag.width  # 2
 
-    tag = tag_class(attrs=("named tag", 9), named=True, tagged=False)
+    tag = tag_class(name="named tag", payload=9, named=True, tagged=False)
     assert len(tag.serialize()) > 1 + 2 + tag.width   # at least
 
 
 @pytest.mark.parametrize(
     "tag",
-    [tag_class(attrs=(name, 42), named=(not not name), tagged=tagged)
+    [tag_class(name=name, payload=42, named=(not not name), tagged=tagged)
         for tag_class in nbt.TAGS if tag_class in nbt.TagInt.__subclasses__()
         for name in ("", "named tag")
         for tagged in (True, False)
@@ -85,7 +85,7 @@ def test_tagint_payload_serialization(tag):
 
 
 def test_tag_byte_payload_validation():
-    tag = nbt.TAG_Byte(attrs=("", 42), named=False, tagged=False)
+    tag = nbt.TAG_Byte(named=False, tagged=False)
 
     # Signed bytes are somewhere around the range [-128, 128]. First assert
     # that a value well within that range is accepted by the setter, then
@@ -115,7 +115,7 @@ def test_tag_double():
 
 def test_tag_byte_array_payload_validation():
     # Initialize a tag with an empty list and it's valid
-    tag = nbt.TAG_Byte_Array(attrs=("", []), named=False, tagged=False)
+    tag = nbt.TAG_Byte_Array(payload=[], named=False, tagged=False)
     assert not tag.payload
     tag.validate()
 
@@ -160,7 +160,7 @@ def test_tag_string(string_val):
     """
     # Instantiate a TAG_String with a payload of "string_val". Assert that the
     # payload value was set correctly.
-    tag = nbt.TAG_String(attrs=("", string_val), named=False, tagged=False)
+    tag = nbt.TAG_String(payload=string_val, named=False, tagged=False)
     assert tag.payload == string_val
 
     # Serialize the previous tag and pass the resuting bytes to the constructor
@@ -172,7 +172,7 @@ def test_tag_string(string_val):
 
 def test_tag_list():
     list_of_tag_strings = [
-        nbt.TAG_String(attrs=("", string_val), named=False, tagged=False)
+        nbt.TAG_String(payload=string_val, named=False, tagged=False)
         for string_val in [
             "abc",
             "defghi",
@@ -183,7 +183,7 @@ def test_tag_list():
     # Initialize a TAG_List with an element type of TAG_String, and validate
     # that an empty list is a valid payload.
     tag = nbt.TAG_List(
-        attrs=("", []),
+        payload=[],
         named=False,
         tagged=False,
         tagID=list_of_tag_strings[0].tid
@@ -210,11 +210,11 @@ def test_tag_compound():
     tag_end = nbt.TAG_End()
 
     # Initialize an empty TAG_Compound list
-    tag = nbt.TAG_Compound(attrs=("", [tag_end]), named=False, tagged=False)
+    tag = nbt.TAG_Compound(payload=[tag_end], named=False, tagged=False)
     tag.validate()
 
     # Add an element and validate
-    tag_string = nbt.TAG_String(attrs=("", "an example string"))
+    tag_string = nbt.TAG_String(name="an example string", payload="with an example payload")
     tag.payload = [tag_string, tag_end]
     tag.validate()
 
