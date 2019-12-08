@@ -38,30 +38,9 @@ from typing import Any, Dict, List, Tuple
 
 class Tag:
 
-    _tid: int = None
+    tid: int = None
     name: str = None
     payload: Any = None
-
-    @property
-    def tid(self) -> int:
-        """ Return the value of the tag's `tid` attribute
-
-        This is a read-only attribute that's directly associated with a
-        specific subclass of Tag as defined the NBT spec.
-        """
-        if self._tid is not None:
-            return self._tid
-
-        # The tag id is found by looking up the specific tag type in the tag id
-        # to tag type mapping.
-        for tag_id, tag_class in TAG_TYPES.items():
-            if isinstance(self, tag_class):
-                self._tid = tag_id
-                return tag_id
-        else:
-            # This is only reachable if there's a bug or if there is an attempt
-            # to instantiate one of the parent tag classes.
-            raise ValueError(f"No tag id is defined for an instance of {self}")
 
     def __init__(self, nbt_data: bytes = None, attrs: Tuple[str, Any] = None, named: bool = True, tagged: bool = True):
         """ Instantiation for all decendent tag types
@@ -258,6 +237,8 @@ class Tag:
 class TAG_End(Tag):
     """ Special-case; see the __init__ of Tag """
 
+    tid = 0x00
+
 
 class TagInt(Tag):
     """ Parent-class for tags with an integer-typed payload
@@ -283,18 +264,26 @@ class TagInt(Tag):
 
 
 class TAG_Byte(TagInt):
+
+    tid = 0x01
     width = 1
 
 
 class TAG_Short(TagInt):
+
+    tid = 0x02
     width = 2
 
 
 class TAG_Int(TagInt):
+
+    tid = 0x03
     width = 4
 
 
 class TAG_Long(TagInt):
+
+    tid = 0x04
     width = 8
 
 
@@ -319,10 +308,14 @@ class TagFloat(Tag):
 
 
 class TAG_Float(TagFloat):
+
+    tid = 0x05
     width = 4
 
 
 class TAG_Double(TagFloat):
+
+    tid = 0x06
     width = 8
 
 
@@ -350,6 +343,7 @@ class TagIterable(Tag):
 
 class TAG_Byte_Array(TagIterable):
 
+    tid = 0x07
     array_size_width = 4  # int
     payload: List[bytes] = None
 
@@ -383,6 +377,7 @@ class TAG_Byte_Array(TagIterable):
 
 class TAG_String(Tag):
 
+    tid = 0x08
     payload: str = None
     string_size_width: int = 2  # short
 
@@ -414,6 +409,7 @@ class TAG_String(Tag):
 
 class TAG_List(TagIterable):
 
+    tid = 0x09
     array_size_width = 4  # int
     tagID: int = None  # "A list with tags having a tid of tagID"
     payload: List[Tag] = None
@@ -474,16 +470,16 @@ class TAG_List(TagIterable):
 
     def validate(self):
         assert isinstance(self.payload, list)
-        tag_classes = list(TAG_TYPES.values())
         if self.payload:
             for value in self.payload:
-                assert value.__class__ in tag_classes
+                assert value.__class__ in TAGS
                 assert not value.named
                 assert not value.tagged
 
 
 class TAG_Compound(TagIterable):
 
+    tid = 0x0a
     payload: List[Tag] = None
 
     def deserialize_payload(self):
@@ -505,10 +501,9 @@ class TAG_Compound(TagIterable):
 
     def validate(self):
         assert isinstance(self.payload, list)
-        tag_classes = list(TAG_TYPES.values())
         if self.payload:
             for value in self.payload:
-                assert value.__class__ in tag_classes
+                assert value.__class__ in TAGS
         assert isinstance(self.payload[-1], TAG_End)
 
 
@@ -561,27 +556,41 @@ class TagIterableNumeric(TagIterable):
 
 
 class TAG_Int_Array(TagIterableNumeric):
+
+    tid = 0x0b
     width = 4  # int
 
 
 class TAG_Long_Array(TagIterableNumeric):
+
+    tid = 0x0c
     width = 8  # long
 
 
+# Official "tags" as defined by the spec and Minecraft wiki.
+#
+# According to the wiki, some tags will only be seen from and usable on newer
+#   versions of Minecraft. For the sake of simplicity, this module doesn't
+#   account for NBT versions or Java-specific limitations.
+TAGS: Tuple[Tag] = (
+    TAG_End,
+    TAG_Byte,
+    TAG_Short,
+    TAG_Int,
+    TAG_Long,
+    TAG_Float,
+    TAG_Double,
+    TAG_Byte_Array,
+    TAG_String,
+    TAG_List,
+    TAG_Compound,
+    TAG_Int_Array,
+    TAG_Long_Array
+)
+
+# A mapping from tag id to tag classes is generally useful.
 TAG_TYPES: Dict[int, Tag] = {
-    0x00: TAG_End,
-    0x01: TAG_Byte,
-    0x02: TAG_Short,
-    0x03: TAG_Int,
-    0x04: TAG_Long,
-    0x05: TAG_Float,
-    0x06: TAG_Double,
-    0x07: TAG_Byte_Array,
-    0x08: TAG_String,
-    0x09: TAG_List,
-    0x0a: TAG_Compound,
-    0x0b: TAG_Int_Array,
-    0x0c: TAG_Long_Array
+    tag_class.tid: tag_class for tag_class in TAGS
 }
 
 

@@ -8,8 +8,6 @@ import pytest
 
 import nbt
 
-TAG_CLASSES = [tag_class for tag_class in nbt.TAG_TYPES.values()]
-
 
 def test_deserialize_reference():
     """ Deserialization of the reference files should not fail
@@ -51,7 +49,7 @@ def test_tag_end():
 
 @pytest.mark.parametrize(
     "tag_class",
-    [tag_class for tag_class in TAG_CLASSES if tag_class in nbt.TagInt.__subclasses__()]
+    [tag_class for tag_class in nbt.TAGS if tag_class in nbt.TagInt.__subclasses__()]
 )
 def test_tagint_serialization_lengths(tag_class):
     """
@@ -73,7 +71,7 @@ def test_tagint_serialization_lengths(tag_class):
 @pytest.mark.parametrize(
     "tag",
     [tag_class(attrs=(name, 42), named=(not not name), tagged=tagged)
-        for tag_class in TAG_CLASSES if tag_class in nbt.TagInt.__subclasses__()
+        for tag_class in nbt.TAGS if tag_class in nbt.TagInt.__subclasses__()
         for name in ("", "named tag")
         for tagged in (True, False)
     ]
