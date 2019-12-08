@@ -37,8 +37,14 @@ from typing import Any, Dict, List, Tuple
 
 
 class Tag:
+    """ Base class of all tags """
 
+    # "tag id", an immutable attribute of a specific subclass of Tag
     tid: int = None
+
+    # "name" and "payload" are mutable instance attributes collected either by
+    # deserialization of nbt data or by having them passed as arguments to the
+    # constructor.
     name: str = None
     payload: Any = None
 
