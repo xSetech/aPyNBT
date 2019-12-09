@@ -98,7 +98,7 @@ def test_tag_end():
     # No parameters are required to instantiate TAG_End since it's a special
     # case: just a zero byte.
     nbt.TAG_End().serialize() == b'\x00'
-    nbt.TAG_End().size == 1
+    nbt.TAG_End()._size == 1
 
 
 @pytest.mark.parametrize(

@@ -111,15 +111,15 @@ class Tag:
                 else:
                     self.named = True
 
-        # self.size is the number of bytes processed during deserialization.
+        # self._size is the number of bytes processed during deserialization.
         # It's incremented by the checkpoint() method. If the value is zero,
         # then no deserialization has occured.
-        self.size: int = 0
+        self._size: int = 0
         self._prev_size: int = 0  # used for sanity checking
 
         # Special-case; TAG_End are basically a tag id without a name or payload
         if isinstance(self, TAG_End):
-            self.size = 1  # 1 byte processed (tag id)
+            self._size = 1  # 1 byte processed (tag id)
             return
 
         # If there's nothing to deserialize, then the name and payload
@@ -147,22 +147,22 @@ class Tag:
         # Save the data so that deserialize_name() and deserialize_payload()
         # can reference it.
         self.nbt_data = data
-        self.size = 0
+        self._size = 0
 
         # Tags in lists don't have a tag id byte.
         if self.tagged:
-            self.size += 1  # 1 byte processed (tag id)
+            self._size += 1  # 1 byte processed (tag id)
 
         # Tags in lists don't have a name.
         if self.named:
             self.deserialize_name()
-            assert self.size - self._prev_size >= 2  # all strings use at least two bytes
+            assert self._size - self._prev_size >= 2  # all strings use at least two bytes
         else:
             self.name = ""
 
         # Reminder: Payload parsing may recurse!
         self.deserialize_payload()
-        assert self.size - self._prev_size >= 1  # all payloads use at least one byte
+        assert self._size - self._prev_size >= 1  # all payloads use at least one byte
 
     def deserialize_name(self):
         """ Sets the name attribute
@@ -171,7 +171,7 @@ class Tag:
         # the first byte (the tag id).
         string_size_width = 2  # length defined by a short
         string_size = int.from_bytes(
-            self.nbt_data[self.size:self.size + string_size_width],
+            self.nbt_data[self._size:self._size + string_size_width],
             byteorder='big',
             signed=False
         )
@@ -186,7 +186,7 @@ class Tag:
             self.name = ""
             return
 
-        self.name = self.nbt_data[self.size:self.size + string_size].decode('utf-8')
+        self.name = self.nbt_data[self._size:self._size + string_size].decode('utf-8')
         self.checkpoint(string_size)
 
     def deserialize_payload(self):
@@ -260,15 +260,15 @@ class Tag:
         raise NotImplementedError
 
     def checkpoint(self, amount: int):
-        """ Increase the value of self.size by some amount
+        """ Increase the value of self._size by some amount
         """
-        self._prev_size = self.size
-        self.size += amount
+        self._prev_size = self._size
+        self._size += amount
 
     def __repr__(self) -> str:
         """ See https://docs.python.org/3.6/reference/datamodel.html#object.__repr__
         """
-        return f"<{self.__class__} size={self.size} name='{self.name}' named={self.named} tagged={self.tagged}>"
+        return f"<{self.__class__} size={self._size} name='{self.name}' named={self.named} tagged={self.tagged}>"
 
 
 class TAG_End(Tag):
@@ -286,7 +286,7 @@ class TagInt(Tag):
 
     def deserialize_payload(self):
         self.payload = int.from_bytes(
-            self.nbt_data[self.size:self.size+self.width],
+            self.nbt_data[self._size:self._size+self.width],
             byteorder='big',
             signed=True
         )
@@ -333,7 +333,7 @@ class TagFloat(Tag):
 
     def deserialize_payload(self):
         # TODO cast this value to a float
-        self.payload = self.nbt_data[self.size:self.size + self.width]
+        self.payload = self.nbt_data[self._size:self._size + self.width]
         self.checkpoint(self.width)
 
     def serialize_payload(self) -> bytes:
@@ -387,7 +387,7 @@ class TAG_Byte_Array(TagIterable):
     def deserialize_payload(self):
         self.payload = []
         array_size = int.from_bytes(
-            self.nbt_data[self.size:self.size + self.array_size_width],
+            self.nbt_data[self._size:self._size + self.array_size_width],
             byteorder='big',
             signed=False
         )
@@ -395,7 +395,7 @@ class TAG_Byte_Array(TagIterable):
 
         # Straight-forward walk of each byte, appending to the payload array.
         for _ in range(array_size):
-            self.payload.append(self.nbt_data[self.size:self.size + 1])
+            self.payload.append(self.nbt_data[self._size:self._size + 1])
             self.checkpoint(1)
 
     def serialize_payload(self) -> bytes:
@@ -420,7 +420,7 @@ class TAG_String(Tag):
 
     def deserialize_payload(self):
         string_size = int.from_bytes(
-            self.nbt_data[self.size:self.size + self.string_size_width],
+            self.nbt_data[self._size:self._size + self.string_size_width],
             byteorder='big',
             signed=False
         )
@@ -430,7 +430,7 @@ class TAG_String(Tag):
             self.payload = ""
             return
 
-        self.payload = self.nbt_data[self.size:self.size + string_size].decode('utf-8')
+        self.payload = self.nbt_data[self._size:self._size + string_size].decode('utf-8')
         self.checkpoint(string_size)
 
     def serialize_payload(self) -> bytes:
@@ -468,13 +468,13 @@ class TAG_List(TagIterable):
         self.payload = []
 
         # Determine the tag type; this only gives us the class to instantiate
-        tag_id = self.nbt_data[self.size:self.size + 1][0]
+        tag_id = self.nbt_data[self._size:self._size + 1][0]
         self.tagID = tag_id  # save for serialization
         self.checkpoint(1)
 
         # Determine the eventual number of elements in the list
         array_size = int.from_bytes(
-            self.nbt_data[self.size:self.size + self.array_size_width],
+            self.nbt_data[self._size:self._size + self.array_size_width],
             byteorder='big',
             signed=False
         )
@@ -485,9 +485,9 @@ class TAG_List(TagIterable):
         # into the data are determined by the sum of the sizes of the
         # previously deserialized tags.
         for _ in range(array_size):
-            tag = TAG_TYPES[tag_id](self.nbt_data[self.size:], named=False, tagged=False)
+            tag = TAG_TYPES[tag_id](self.nbt_data[self._size:], named=False, tagged=False)
             self.payload.append(tag)
-            self.checkpoint(tag.size)
+            self.checkpoint(tag._size)
 
     def serialize_payload(self) -> bytes:
         # See the docstring for TAG_List's constructor.
@@ -522,9 +522,9 @@ class TAG_Compound(TagIterable):
     def deserialize_payload(self):
         self.payload = []
         while True:
-            tag_id = self.nbt_data[self.size:][0]
-            tag = TAG_TYPES[tag_id](self.nbt_data[self.size:])
-            self.checkpoint(tag.size)
+            tag_id = self.nbt_data[self._size:][0]
+            tag = TAG_TYPES[tag_id](self.nbt_data[self._size:])
+            self.checkpoint(tag._size)
             self.payload.append(tag)
             if isinstance(tag, TAG_End):
                 break
@@ -557,7 +557,7 @@ class TagIterableNumeric(TagIterable):
 
         # Determine the eventual number of elements in the list
         array_size = int.from_bytes(
-            self.nbt_data[self.size:self.size + self.array_size_width],
+            self.nbt_data[self._size:self._size + self.array_size_width],
             byteorder='big',
             signed=False
         )
@@ -566,7 +566,7 @@ class TagIterableNumeric(TagIterable):
         # Straight-forward walk of each int/long, appending to the payload array.
         for _ in range(array_size):
             int_value = int.from_bytes(
-                self.nbt_data[self.size:self.size + self.width],
+                self.nbt_data[self._size:self._size + self.width],
                 byteorder='big',
                 signed=True
             )
@@ -639,7 +639,7 @@ def deserialize(nbt_data: bytes) -> List[Tag]:
 
     # Each iteration of this loop processes one tag at the root of the tree.
     #
-    # If there's only one root, the value of tag.size is equal to the total
+    # If there's only one root, the value of tag._size is equal to the total
     # size (in bytes) of the data itself (since the one and only root tag
     # comprises the entire data). If not, the bytes following the tag are
     # considered a new tag.
@@ -651,11 +651,11 @@ def deserialize(nbt_data: bytes) -> List[Tag]:
         tag = TAG_TYPES[tag_id](nbt_data[index:])
 
         # This assert prevents the while loop from spinning forever in the
-        # highly-unlikely event of tag.size being zero or negative (most likely
+        # highly-unlikely event of tag._size being zero or negative (most likely
         # due to a bug).
-        assert tag.size >= 1
+        assert tag._size >= 1
 
-        remaining_bytes -= tag.size
+        remaining_bytes -= tag._size
         nbt_tree.append(tag)
 
     return nbt_tree
