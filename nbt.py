@@ -48,7 +48,7 @@ class Tag:
     name: str = None
     payload: Any = None
 
-    def __init__(self, nbt_data: bytes = None, name: str = None, payload: Any = None, named: bool = True, tagged: bool = True):
+    def __init__(self, nbt_data: bytes = None, name: str = None, payload: Any = None, named: bool = None, tagged: bool = True):
         """ Instantiation for all decendent tag types
 
         The purpose of this method is to populate the three tag attributes (id,
@@ -82,17 +82,34 @@ class Tag:
                 attribute will be set to this value.
 
             named::bool
-                Does the tag have bytes in nbt_data corresponding to the name attribute?
+                If deserializing, indicates the tag has bytes in nbt_data
+                corresponding to the "name" attribute. If serializing, bytes
+                will be created to represent the attribute (a value of None
+                will be treated as an empty string).
 
             tagged::bool
-                Does the tag have bytes in nbt_data corresponding to the tid attribute?
+                If deserializing, indicates the tag has bytes in nbt_data
+                corresponding to the "tid" attribute. If serializing, bytes
+                will be created to represent the attribute.
 
         Note that TAG_End is a special case of just a single byte of zero. You
         can think of it as a tag without bytes in nbt_data corresponding to the
         name or payload attributes.
         """
-        self.named: bool = named
         self.tagged: bool = tagged
+
+        # If named is explicitly given, we'll use the passed value. Otherwise,
+        # the value is inferred from other arguments.
+        if named is not None:
+            self.named: bool = named
+        else:
+            if nbt_data is not None:
+                self.named = True
+            else:
+                if name is None:
+                    self.named = False
+                else:
+                    self.named = True
 
         # self.size is the number of bytes processed during deserialization.
         # It's incremented by the checkpoint() method. If the value is zero,
@@ -116,6 +133,11 @@ class Tag:
             self.name = name
         if payload is not None:
             self.payload = payload
+
+        # Named tags with None-valued names are the same as empty-string valued
+        # named tags.
+        if self.named and self.name is None:
+            self.name = ""
 
     def deserialize(self, data: bytes):
         """
@@ -181,8 +203,10 @@ class Tag:
         if isinstance(self, TAG_End):
             return b'\x00'
 
-        # The tag needs to atleast have been initialized!
+        # Can't serialize a base-class!
         assert self.tid is not None
+
+        # The tag needs to at least have been initialized!
         assert self.named is not None
         assert self.tagged is not None
 
@@ -208,6 +232,12 @@ class Tag:
         """
         if not self.named:
             return b''
+
+        # Named tags with None-valued names are the same as empty-string valued
+        # named tags. These lines handle the case of an NBT editor accidentally
+        # setting the attribute to None after instantiation.
+        if self.name is None:
+            self.name = ""
 
         encoded_string = self.name.encode('utf-8')
         encoded_length = len(encoded_string).to_bytes(2, byteorder='big', signed=False)
