@@ -3,39 +3,64 @@
 """
 
 import gzip
+import os
+from pathlib import Path
+from typing import List, Tuple
 
 import pytest
 
 import nbt
 
+NBT_FILE_SUFFIXES: Tuple[str] = (
+    ".dat",
+)
 
-def test_deserialize_reference():
-    """ Deserialization of the reference files should not fail
+
+def _find_all_test_data(root: Path = Path("test_data/")) -> List[Path]:
+    """ Returns all testable NBT files
     """
-    nbt.deserialize_file("test_data/level.dat.gz")
+    nbt_files = []
+    for f in root.iterdir():
+        if f.is_dir():
+            nbt_files.extend(_find_all_test_data(f))
+            continue
+        if f.is_file():
+            if any([f.name.endswith(suffix) for suffix in NBT_FILE_SUFFIXES]):
+                nbt_files.append(f)
+                continue
+    return nbt_files
 
 
-def test_reserialize_reference():
-    """ Deserialize a file and then reserialize the data
-    """
-    tree = nbt.deserialize_file("test_data/level.dat.gz")
+TESTABLE_NBT_FILES: List[Path] = _find_all_test_data()
+
+
+@pytest.mark.parametrize(
+    "filepath", TESTABLE_NBT_FILES, ids=[str(filepath) for filepath in TESTABLE_NBT_FILES]
+)
+def test_deserialize_all_test_data(filepath: Path):
+    nbt.deserialize_file(filepath)
+
+
+@pytest.mark.parametrize(
+    "filepath", TESTABLE_NBT_FILES, ids=[str(filepath) for filepath in TESTABLE_NBT_FILES]
+)
+def test_reserialize_all_test_data(filepath: Path):
+    tree = nbt.deserialize_file(filepath)
     data = nbt.serialize(tree)
 
 
-def test_reserialize_reference_compared():
+@pytest.mark.parametrize(
+    "filepath", TESTABLE_NBT_FILES, ids=[str(filepath) for filepath in TESTABLE_NBT_FILES]
+)
+def test_reserialize_reference_compared(filepath: Path):
     """
-    Same as test_reserialize_reference(), but compare the original uncompressed
-        bytes to the output of the serializer. There should be no difference.
+    Same as test_reserialize_reference(), but compare the original bytes to the
+    output of the serializer. There should be no difference.
     """
-    with open("test_data/level.dat.gz", "rb") as compressed_nbt_file:
-        compressed_data = compressed_nbt_file.read()
-
-    # These are the bytes that the Minecraft client/server created.
-    original_data = gzip.decompress(compressed_data)
-    tree = nbt.deserialize(original_data)
+    orig = nbt.extract_serialized_bytes(filepath)
+    tree = nbt.deserialize_file(filepath)
     data = nbt.serialize(tree)
-
-    assert data == original_data
+    assert data == orig
 
 
 def test_tag_named_attr():
