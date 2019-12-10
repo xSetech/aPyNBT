@@ -490,11 +490,11 @@ class TAG_List(TagIterable):
 
     def serialize_payload(self) -> bytes:
         # See the docstring for TAG_List's constructor.
-        assert self.tagID or self.payload
+        assert self.tagID is not None or self.payload is not None
 
         # self.tagID will not have been set if deserialization was skipped. We
         #   can recover it by looking at the first element of the list.
-        if not self.tagID:
+        if self.tagID is None:
             self.tagID = self.payload[0].tid
 
         data = b''
