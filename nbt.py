@@ -48,6 +48,11 @@ class Tag:
     name: str = None
     payload: Any = None
 
+    # Is the tag's payload an equivallent basic Python type (int, str, etc)?
+    # This is a class attribute that permits significant performance gains
+    # during serialization or deserialization.
+    _is_primitive: bool = False
+
     def __init__(self, nbt_data: memoryview = None, name: str = None, payload: Any = None, named: bool = None, tagged: bool = True):
         """ Instantiation for all decendent tag types
 
@@ -200,8 +205,18 @@ class Tag:
         """
         raise NotImplementedError
 
+    @classmethod
+    def deserialize_primitive(cls, data: memoryview) -> Tuple[Any, int]:
+        """
+        If the tag's payload can be represented as a basic Python type, a
+            subclass of Tag implements this method. Passed bytes are converted to
+            the tag's payload's type. The value is returned along with the number
+            of bytes deserialized ("width").
+        """
+        raise NotImplementedError
+
     def serialize(self) -> bytes:
-        """ Returns this tag's representation in memoryview
+        """ Returns this tag's representation in bytes
         """        
         # Special-case: TAG_End is defined as 0x00
         if isinstance(self, TAG_End):
@@ -254,6 +269,12 @@ class Tag:
         """
         raise NotImplementedError
 
+    @classmethod
+    def serialize_primitive(cls, value: Any) -> bytes:
+        """ The reverse of Tag.deserialize_primitive()
+        """
+        raise NotImplementedError
+
     def validate(self):
         """ Validate the current tag's payload
 
@@ -288,16 +309,27 @@ class TagInt(Tag):
     payload: int = None
     width: int = None
 
-    def deserialize_payload(self, data: memoryview):
-        self.payload = int.from_bytes(
-            data[self._size:self._size+self.width],
+    _is_primitive: bool = True
+
+    @classmethod
+    def deserialize_primitive(cls, data: memoryview) -> Tuple[int, int]:
+        value = int.from_bytes(
+            data[:cls.width],
             byteorder='big',
             signed=True
         )
+        return value, cls.width
+
+    @classmethod
+    def serialize_primitive(cls, value: int) -> bytes:
+        return value.to_bytes(cls.width, byteorder='big', signed=True)
+
+    def deserialize_payload(self, data: memoryview):
+        self.payload, _ = self.deserialize_primitive(data[self._size:self._size+self.width])
         self.checkpoint(self.width)
 
     def serialize_payload(self) -> bytes:
-        return self.payload.to_bytes(self.width, byteorder='big', signed=True)
+        return self.serialize_primitive(self.payload)
 
     def validate(self):
         assert isinstance(self.payload, int)
@@ -332,16 +364,18 @@ class TagFloat(Tag):
     """ Parent class for floating point tag types
     """
 
-    payload: bytes = None  # TODO make this a float
+    payload: bytes = None  # TODO TAG_Float is a float
     width: int = None
 
+    _is_primitive: bool = False  # TODO TAG_Float is a float
+
     def deserialize_payload(self, data: memoryview):
-        # TODO cast this value to a float
+        # TODO TAG_Float is a float
         self.payload = data[self._size:self._size + self.width].tobytes()
         self.checkpoint(self.width)
 
     def serialize_payload(self) -> bytes:
-        # TODO actual deserialization of a float
+        # TODO TAG_Float is a float
         return self.payload
 
     def validate(self):
@@ -367,7 +401,7 @@ class TagIterable(Tag):
 
     The spec defines the payload as being an array of packed tags without an id
         or name field. This module uses types optimized for Python. For example,
-        TAG_Byte_Array's payload is a list of memoryview rather than a list of id-less &
+        TAG_Byte_Array's payload is a list of bytes rather than a list of id-less &
         nameless TAG_Byte instances.
 
     By definition, TAG_String is not considered iterable since it's payload is
@@ -376,7 +410,7 @@ class TagIterable(Tag):
         function to the "array_size_width" attribute.
     """
 
-    # Number of memoryview that represent the number of elements in the iterable (if
+    # Number of bytes that represent the number of elements in the iterable (if
     # a length field is provided by the tag at all, e.g. TAG_Compound uses
     # TAG_End to denote the end of its array).
     array_size_width: int = None
@@ -422,27 +456,41 @@ class TAG_String(Tag):
     payload: str = None
     string_size_width: int = 2  # short
 
-    def deserialize_payload(self, data: memoryview):
+    _is_primitive: bool = True
+
+    @classmethod
+    def deserialize_primitive(cls, data: memoryview) -> Tuple[int, int]:
         string_size = int.from_bytes(
-            data[self._size:self._size + self.string_size_width],
+            data[:cls.string_size_width],
             byteorder='big',
             signed=False
         )
-        self.checkpoint(self.string_size_width)
 
         if string_size == 0:
-            self.payload = ""
-            return
+            return "", cls.string_size_width
 
-        self.payload = data[self._size:self._size + string_size].tobytes().decode('utf-8')
-        self.checkpoint(string_size)
+        string_width = cls.string_size_width + string_size
+        string_value = data[cls.string_size_width:string_width].tobytes().decode('utf-8')
+        return string_value, string_width
 
-    def serialize_payload(self) -> bytes:
+    @classmethod
+    def serialize_primitive(cls, value: str) -> bytes:
         data = b''
-        encoded_string = self.payload.encode('utf-8')
-        data += len(encoded_string).to_bytes(self.string_size_width, byteorder='big', signed=False)
+        encoded_string: bytes = value.encode('utf-8')
+        data += len(encoded_string).to_bytes(
+            cls.string_size_width,
+            byteorder='big',
+            signed=False
+        )
         data += encoded_string
         return data
+
+    def deserialize_payload(self, data: memoryview):
+        self.payload, payload_width = self.deserialize_primitive(data[self._size:])
+        self.checkpoint(payload_width)
+
+    def serialize_payload(self) -> bytes:
+        return self.serialize_primitive(self.payload)
 
     def validate(self):
         assert isinstance(self.payload, str)
@@ -484,14 +532,38 @@ class TAG_List(TagIterable):
         )
         self.checkpoint(self.array_size_width)
 
-        # The size of each tag isn't known ahead of time. All we know is that
-        # we need to append `array_size` tags to the list. Successive offsets
-        # into the data are determined by the sum of the sizes of the
-        # previously deserialized tags.
-        for _ in range(array_size):
-            tag = TAG_TYPES[tag_id](data[self._size:], named=False, tagged=False)
-            self.payload.append(tag)
-            self.checkpoint(tag._size)
+        # Optimization: Don't store a list of Tag instances.
+        #
+        # Some unnamed, untagged "tag"s are better represented as simply a
+        # basic Python type (TagNumeric -> int, TAG_String -> str, etc). We
+        # don't lose any information at serialization since the tag-type is
+        # known from the tagID attribute value. Supporting tag types have a
+        # positive boolean attribute named "_is_primitive" and define a
+        # class method for converting bytes into the correspinding Python
+        # basic type. This improves performance by avoiding object
+        # instantiation.
+        #
+        # The only tags that aren't "primitive" are usually iterables. For
+        # example, TAG_List can't be represented using just a Python list
+        # type because then information about what type the list is made of
+        # is lost if the list is empty.
+        #
+        # Note on the size of each tag: They're not known ahead of time. All we
+        # know is that we need to append `array_size` tags to the list.
+        # Successive offsets into the data are determined by the sum of the
+        # sizes of the previously deserialized tags.
+        tag_type = TAG_TYPES[tag_id]
+        if tag_type._is_primitive:
+            for _ in range(array_size):
+                value, width = tag_type.deserialize_primitive(data[self._size:])
+                self.payload.append(value)
+                self.checkpoint(width)
+                continue
+        else:
+            for _ in range(array_size):
+                tag = tag_type(data[self._size:], named=False, tagged=False)
+                self.payload.append(tag)
+                self.checkpoint(tag._size)
 
     def serialize_payload(self) -> bytes:
         # See the docstring for TAG_List's constructor.
@@ -502,17 +574,30 @@ class TAG_List(TagIterable):
         if self.tagID is None:
             self.tagID = self.payload[0].tid
 
+        # Serializing the tag type and the number of them is straight-forward.
         data = b''
         data += self.tagID.to_bytes(1, byteorder='big', signed=False)
         data += len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
-        for tag in self.payload:
-            data += tag.serialize()
+
+        # If the list is empty, there's nothing to serialize :)
+        if not self.payload:
+            return data
+
+        # The list has stuff in it. The stuff could be an instance of Tag, or
+        # could be primitives (integers, strings, etc).
+        if TAG_TYPES[self.tagID]._is_primitive:
+            for primitive in self.payload:
+                data += TAG_TYPES[self.tagID].serialize_primitive(primitive)
+        else:
+            for tag in self.payload:
+                data += tag.serialize()
+
         return data
 
     def validate(self):
         assert isinstance(self.payload, list)
-        if self.payload:
-            for value in self.payload:
+        for value in self.payload:
+            if not TAG_TYPES[self.tagID]._is_primitive:
                 assert value.__class__ in TAGS
                 assert not value.named
                 assert not value.tagged
@@ -645,8 +730,8 @@ def deserialize(nbt_data: memoryview) -> List[Tag]:
     # Each iteration of this loop processes one tag at the root of the tree.
     #
     # If there's only one root, the value of tag._size is equal to the total
-    # size (in memoryview) of the data itself (since the one and only root tag
-    # comprises the entire data). If not, the memoryview following the tag are
+    # size (in bytes) of the data itself (since the one and only root tag
+    # comprises the entire data). If not, the bytes following the tag are
     # considered a new tag.
     remaining_bytes = total_bytes
     while remaining_bytes > 0:
@@ -667,7 +752,7 @@ def deserialize(nbt_data: memoryview) -> List[Tag]:
 
 
 def serialize(nbt_tree: List[Tag]) -> bytes:
-    """ Serialize an NBT tree and return uncompressed memoryview
+    """ Serialize an NBT tree and return uncompressed bytes
     """
     data = b''
     for tag in nbt_tree:
@@ -685,7 +770,7 @@ def extract_serialized_bytes(filename: str) -> bytes:
     # https://www.onicos.com/staff/iz/formats/gzip.html
     if file_data[0:2] == b'\x1f\x8b':
         import gzip
-        decompressed_data: memoryview = gzip.decompress(file_data)
+        decompressed_data: bytes = gzip.decompress(file_data)
         return decompressed_data
 
     return file_data
@@ -701,7 +786,7 @@ def deserialize_file(filename: str) -> List[Tag]:
 def serialize_file(filename: str, nbt_tree: List[Tag], compress: bool = True):
     """ Serialize an NBT tree, optionally compress the output, and to a file
     """
-    data: memoryview = serialize(nbt_tree)
+    data: bytes = serialize(nbt_tree)
     if compress:
         import gzip
         data = gzip.compress(data)

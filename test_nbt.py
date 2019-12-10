@@ -249,27 +249,25 @@ def test_tag_string(string_val):
     assert tag2.payload == string_val
 
 
-def test_tag_list():
-    list_of_tag_strings = [
-        nbt.TAG_String(payload=string_val, tagged=False)
-        for string_val in [
-            "abc",
-            "defghi",
-            "jkl",
-        ]
+def test_tag_list_with_tags():
+    """ [tag, tag, ...]
+    """
+    payload = [
+        nbt.TAG_Int_Array(payload=[1, 2, 3, 4], tagged=False),
+        nbt.TAG_Int_Array(payload=[5, 6, 7, 8], tagged=False),
     ]
 
-    # Initialize a TAG_List with an element type of TAG_String, and validate
+    # Initialize a TAG_List with an element type of TAG_Int_Array, and validate
     # that an empty list is a valid payload.
     tag = nbt.TAG_List(
         payload=[],
         tagged=False,
-        tagID=list_of_tag_strings[0].tid
+        tagID=payload[0].tid
     )
     tag.validate()
 
-    # A list of unnamed & untagged TAG_String instances is valid.
-    tag.payload = list_of_tag_strings
+    # A list of unnamed & untagged TAG_Int_Array instances is valid.
+    tag.payload = payload
     tag.validate()
 
     # A tag that is named makes the payload invalid.
@@ -282,6 +280,28 @@ def test_tag_list():
     tag.payload[0].tagged = True
     with pytest.raises(AssertionError):
         tag.validate()
+
+
+def test_tag_list_with_primitives():
+    """ [str, str, ...]
+    """
+    payload = [
+        "abc",
+        "123"
+    ]
+
+    # Initialize a TAG_List with an element type of TAG_String, and validate
+    # that an empty list is a valid payload.
+    tag = nbt.TAG_List(
+        payload=[],
+        tagged=False,
+        tagID=nbt.TAG_String.tid
+    )
+    tag.validate()
+
+    # A list of strings is valid.
+    tag.payload = payload
+    tag.validate()
 
 
 def test_tag_compound():
