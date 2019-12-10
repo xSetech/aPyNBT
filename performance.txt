@@ -1,40 +1,39 @@
-Profiling (from /home/seth/Src/Projects/aPyNBT/prof/combined.prof):
-Mon Dec  9 22:30:06 2019    /home/seth/Src/Projects/aPyNBT/prof/combined.prof
+Mon Dec  9 22:46:27 2019    /home/seth/Src/Projects/aPyNBT/prof/combined.prof
 
-         3031363 function calls (2651331 primitive calls) in 6.203 seconds
+         3039283 function calls (2659251 primitive calls) in 3.343 seconds
 
    Ordered by: cumulative time
    List reduced from 432 to 20 due to restriction <20>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-       88    0.001    0.000    6.202    0.070 runner.py:79(pytest_runtest_protocol)
- 1480/968    0.006    0.000    6.184    0.006 hooks.py:272(__call__)
- 1480/968    0.001    0.000    6.178    0.006 manager.py:90(_hookexec)
- 1480/968    0.002    0.000    6.178    0.006 manager.py:84(<lambda>)
- 1480/968    0.013    0.000    6.176    0.006 callers.py:157(_multicall)
-       88    0.001    0.000    6.168    0.070 runner.py:86(runtestprotocol)
-      264    0.001    0.000    6.167    0.023 runner.py:181(call_and_report)
-      264    0.001    0.000    6.108    0.023 runner.py:200(call_runtest_hook)
-      264    0.001    0.000    6.104    0.023 runner.py:227(from_call)
-      264    0.001    0.000    6.103    0.023 runner.py:207(<lambda>)
-       88    0.000    0.000    6.042    0.069 runner.py:122(pytest_runtest_call)
-       88    0.000    0.000    6.041    0.069 python.py:1433(runtest)
-       88    0.025    0.000    6.037    0.069 python.py:148(pytest_pyfunc_call)
-       54    0.000    0.000    5.592    0.104 nbt.py:688(deserialize_file)
-122375/383    0.130    0.000    5.583    0.015 nbt.py:142(deserialize)
-135390/102    0.160    0.000    5.582    0.055 nbt.py:51(__init__)
-       54    0.000    0.000    5.582    0.103 nbt.py:633(deserialize)
- 13296/54    4.354    0.000    5.582    0.103 nbt.py:521(deserialize_payload)
-  421/316    0.001    0.000    5.531    0.018 nbt.py:453(__init__)
-  420/315    0.151    0.000    5.529    0.018 nbt.py:466(deserialize_payload)
+       88    0.001    0.000    3.342    0.038 runner.py:79(pytest_runtest_protocol)
+ 1480/968    0.006    0.000    3.324    0.003 hooks.py:272(__call__)
+ 1480/968    0.001    0.000    3.318    0.003 manager.py:90(_hookexec)
+ 1480/968    0.002    0.000    3.318    0.003 manager.py:84(<lambda>)
+ 1480/968    0.013    0.000    3.316    0.003 callers.py:157(_multicall)
+       88    0.001    0.000    3.309    0.038 runner.py:86(runtestprotocol)
+      264    0.001    0.000    3.307    0.013 runner.py:181(call_and_report)
+      264    0.001    0.000    3.246    0.012 runner.py:200(call_runtest_hook)
+      264    0.001    0.000    3.242    0.012 runner.py:227(from_call)
+      264    0.001    0.000    3.241    0.012 runner.py:207(<lambda>)
+       88    0.000    0.000    3.180    0.036 runner.py:122(pytest_runtest_call)
+       88    0.000    0.000    3.179    0.036 python.py:1433(runtest)
+       88    0.010    0.000    3.175    0.036 python.py:148(pytest_pyfunc_call)
+       54    0.000    0.000    2.757    0.051 nbt.py:685(deserialize_file)
+122375/383    0.120    0.000    2.748    0.007 nbt.py:142(deserialize)
+       54    0.000    0.000    2.747    0.051 nbt.py:630(deserialize)
+135390/102    0.146    0.000    2.747    0.027 nbt.py:51(__init__)
+ 13296/54    1.622    0.000    2.746    0.051 nbt.py:518(deserialize_payload)
+  421/316    0.001    0.000    2.707    0.009 nbt.py:450(__init__)
+  420/315    0.123    0.000    2.705    0.009 nbt.py:463(deserialize_payload)
 
 
 SVG profile in /home/seth/Src/Projects/aPyNBT/prof/combined.svg.
 
-============================================================================== slowest test durations ===============================================================================
-3.28s call     test_nbt.py::test_deserialize_all_test_data[test_data/WORLDS/MC 1_12_2 World/data/Mineshaft.dat]
-1.34s call     test_nbt.py::test_reserialize_all_test_data[test_data/WORLDS/MC 1_12_2 World/data/Mineshaft.dat]
-1.34s call     test_nbt.py::test_reserialize_reference_compared[test_data/WORLDS/MC 1_12_2 World/data/Mineshaft.dat]
+============================================================================================= slowest test durations ==============================================================================================
+1.10s call     test_nbt.py::test_reserialize_all_test_data[test_data/WORLDS/MC 1_12_2 World/data/Mineshaft.dat]
+1.10s call     test_nbt.py::test_reserialize_reference_compared[test_data/WORLDS/MC 1_12_2 World/data/Mineshaft.dat]
+0.91s call     test_nbt.py::test_deserialize_all_test_data[test_data/WORLDS/MC 1_12_2 World/data/Mineshaft.dat]
 0.01s call     test_nbt.py::test_reserialize_reference_compared[test_data/WORLDS/MC 1_12_2 World/data/Village.dat]
 0.01s call     test_nbt.py::test_reserialize_all_test_data[test_data/WORLDS/MC 1_12_2 World/data/Village.dat]
 0.01s call     test_nbt.py::test_deserialize_all_test_data[test_data/WORLDS/MC 1_12_2 World/data/Village.dat]
