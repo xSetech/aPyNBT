@@ -2,6 +2,8 @@
 """ Navigate an NBT file
 """
 
+import sys
+
 import nbt
 
 
@@ -48,7 +50,7 @@ def main():
     print('-' * (32 + 1 + 3 + 1 + 5 + 2 + 24 + 2))
 
     # Data
-    tree = nbt.deserialize_file('level.dat.gz')
+    tree = nbt.deserialize_file(sys.argv[1])
     depth_first_printout(None, tree, level=0)
 
 
