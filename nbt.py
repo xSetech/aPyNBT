@@ -156,7 +156,6 @@ class Tag:
         # Tags in lists don't have a name.
         if self.named:
             self.deserialize_name()
-            assert self._size - self._prev_size >= 2  # all strings use at least two bytes
         else:
             self.name = ""
 
