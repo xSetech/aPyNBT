@@ -24,7 +24,7 @@ def depth_first_printout(screen, tree, level):
                 value = str(branch.payload)
             if isinstance(branch, nbt.TagIterable):
                 value = f"{len(branch.payload)} children"
-            size = str(branch.size)
+            size = str(branch._size)
             if isinstance(branch, nbt.TAG_End):
                 size = "1"
                 value = ""
