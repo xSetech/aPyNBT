@@ -144,9 +144,6 @@ class Tag:
         Deserialize a blob of data and set the `name` and `payload` attributes
             of the tag.
         """
-        # Save the data so that deserialize_name() and deserialize_payload()
-        # can reference it.
-        self.nbt_data = data
         self._size = 0
 
         # Tags in lists don't have a tag id byte.
@@ -155,22 +152,22 @@ class Tag:
 
         # Tags in lists don't have a name.
         if self.named:
-            self.deserialize_name()
+            self.deserialize_name(data)
         else:
             self.name = ""
 
         # Reminder: Payload parsing may recurse!
-        self.deserialize_payload()
+        self.deserialize_payload(data)
         assert self._size - self._prev_size >= 1  # all payloads use at least one byte
 
-    def deserialize_name(self):
+    def deserialize_name(self, data: bytes):
         """ Sets the name attribute
         """
         # The size of the name is give by two Big Endian bytes, offset one from
         # the first byte (the tag id).
         string_size_width = 2  # length defined by a short
         string_size = int.from_bytes(
-            self.nbt_data[self._size:self._size + string_size_width],
+            data[self._size:self._size + string_size_width],
             byteorder='big',
             signed=False
         )
@@ -185,10 +182,10 @@ class Tag:
             self.name = ""
             return
 
-        self.name = self.nbt_data[self._size:self._size + string_size].decode('utf-8')
+        self.name = data[self._size:self._size + string_size].decode('utf-8')
         self.checkpoint(string_size)
 
-    def deserialize_payload(self):
+    def deserialize_payload(self, data: bytes):
         """ Sets the payload attribute
 
         This is specific to each tag and implemented in the respective tag class.
@@ -283,9 +280,9 @@ class TagInt(Tag):
     payload: int = None
     width: int = None
 
-    def deserialize_payload(self):
+    def deserialize_payload(self, data: bytes):
         self.payload = int.from_bytes(
-            self.nbt_data[self._size:self._size+self.width],
+            data[self._size:self._size+self.width],
             byteorder='big',
             signed=True
         )
@@ -330,9 +327,9 @@ class TagFloat(Tag):
     payload: bytes = None  # TODO make this a float
     width: int = None
 
-    def deserialize_payload(self):
+    def deserialize_payload(self, data: bytes):
         # TODO cast this value to a float
-        self.payload = self.nbt_data[self._size:self._size + self.width]
+        self.payload = data[self._size:self._size + self.width]
         self.checkpoint(self.width)
 
     def serialize_payload(self) -> bytes:
@@ -383,10 +380,10 @@ class TAG_Byte_Array(TagIterable):
     array_size_width = 4  # int
     payload: List[bytes] = None
 
-    def deserialize_payload(self):
+    def deserialize_payload(self, data: bytes):
         self.payload = []
         array_size = int.from_bytes(
-            self.nbt_data[self._size:self._size + self.array_size_width],
+            data[self._size:self._size + self.array_size_width],
             byteorder='big',
             signed=False
         )
@@ -394,7 +391,7 @@ class TAG_Byte_Array(TagIterable):
 
         # Straight-forward walk of each byte, appending to the payload array.
         for _ in range(array_size):
-            self.payload.append(self.nbt_data[self._size:self._size + 1])
+            self.payload.append(data[self._size:self._size + 1])
             self.checkpoint(1)
 
     def serialize_payload(self) -> bytes:
@@ -417,9 +414,9 @@ class TAG_String(Tag):
     payload: str = None
     string_size_width: int = 2  # short
 
-    def deserialize_payload(self):
+    def deserialize_payload(self, data: bytes):
         string_size = int.from_bytes(
-            self.nbt_data[self._size:self._size + self.string_size_width],
+            data[self._size:self._size + self.string_size_width],
             byteorder='big',
             signed=False
         )
@@ -429,7 +426,7 @@ class TAG_String(Tag):
             self.payload = ""
             return
 
-        self.payload = self.nbt_data[self._size:self._size + string_size].decode('utf-8')
+        self.payload = data[self._size:self._size + string_size].decode('utf-8')
         self.checkpoint(string_size)
 
     def serialize_payload(self) -> bytes:
@@ -463,17 +460,17 @@ class TAG_List(TagIterable):
         self.tagID = tagID
         super(TAG_List, self).__init__(*args, **kwargs)
 
-    def deserialize_payload(self):
+    def deserialize_payload(self, data: bytes):
         self.payload = []
 
         # Determine the tag type; this only gives us the class to instantiate
-        tag_id = self.nbt_data[self._size:self._size + 1][0]
+        tag_id = data[self._size:self._size + 1][0]
         self.tagID = tag_id  # save for serialization
         self.checkpoint(1)
 
         # Determine the eventual number of elements in the list
         array_size = int.from_bytes(
-            self.nbt_data[self._size:self._size + self.array_size_width],
+            data[self._size:self._size + self.array_size_width],
             byteorder='big',
             signed=False
         )
@@ -484,7 +481,7 @@ class TAG_List(TagIterable):
         # into the data are determined by the sum of the sizes of the
         # previously deserialized tags.
         for _ in range(array_size):
-            tag = TAG_TYPES[tag_id](self.nbt_data[self._size:], named=False, tagged=False)
+            tag = TAG_TYPES[tag_id](data[self._size:], named=False, tagged=False)
             self.payload.append(tag)
             self.checkpoint(tag._size)
 
@@ -518,11 +515,11 @@ class TAG_Compound(TagIterable):
     tid = 0x0a
     payload: List[Tag] = None
 
-    def deserialize_payload(self):
+    def deserialize_payload(self, data: bytes):
         self.payload = []
         while True:
-            tag_id = self.nbt_data[self._size:][0]
-            tag = TAG_TYPES[tag_id](self.nbt_data[self._size:])
+            tag_id = data[self._size:][0]
+            tag = TAG_TYPES[tag_id](data[self._size:])
             self.checkpoint(tag._size)
             self.payload.append(tag)
             if isinstance(tag, TAG_End):
@@ -551,12 +548,12 @@ class TagIterableNumeric(TagIterable):
     payload: List[int] = None
     width = None
 
-    def deserialize_payload(self):
+    def deserialize_payload(self, data: bytes):
         self.payload = []
 
         # Determine the eventual number of elements in the list
         array_size = int.from_bytes(
-            self.nbt_data[self._size:self._size + self.array_size_width],
+            data[self._size:self._size + self.array_size_width],
             byteorder='big',
             signed=False
         )
@@ -565,7 +562,7 @@ class TagIterableNumeric(TagIterable):
         # Straight-forward walk of each int/long, appending to the payload array.
         for _ in range(array_size):
             int_value = int.from_bytes(
-                self.nbt_data[self._size:self._size + self.width],
+                data[self._size:self._size + self.width],
                 byteorder='big',
                 signed=True
             )
