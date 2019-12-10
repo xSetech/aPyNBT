@@ -670,8 +670,8 @@ def serialize(nbt_tree: List[Tag]) -> bytes:
     return data
 
 
-def deserialize_file(filename: str) -> List[Tag]:
-    """ Deserialize a GZip compressed or uncompressed NBT file
+def extract_serialized_bytes(filename: str) -> bytes:
+    """ Return uncompressed serialized NBT
     """
     with open(filename, 'rb') as nbt_file:
         file_data = nbt_file.read()
@@ -681,9 +681,16 @@ def deserialize_file(filename: str) -> List[Tag]:
     if file_data[0:2] == b'\x1f\x8b':
         import gzip
         decompressed_data: bytes = gzip.decompress(file_data)
-        return deserialize(decompressed_data)
+        return decompressed_data
 
-    return deserialize(file_data)
+    return file_data
+
+
+def deserialize_file(filename: str) -> List[Tag]:
+    """ Deserialize a GZip compressed or uncompressed NBT file
+    """
+    serialized_nbt_data = extract_serialized_bytes(filename)
+    return deserialize(serialized_nbt_data)
 
 
 def serialize_file(filename: str, nbt_tree: List[Tag], compress: bool = True):
