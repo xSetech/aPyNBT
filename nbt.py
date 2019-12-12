@@ -48,7 +48,7 @@ class Tag:
     name: str = None
     payload: Any = None
 
-    def __init__(self, nbt_data: bytes = None, name: str = None, payload: Any = None, named: bool = None, tagged: bool = True):
+    def __init__(self, nbt_data: memoryview = None, name: str = None, payload: Any = None, named: bool = None, tagged: bool = True):
         """ Instantiation for all decendent tag types
 
         The purpose of this method is to populate the three tag attributes (id,
@@ -62,7 +62,7 @@ class Tag:
                 The numeric identifier of the tag that's used as a key into
                 TAG_TYPES to get the specific tag class.
 
-            nbt_data::bytes
+            nbt_data::memoryview
                 If this parameter is not None, then the name and payload
                 attributes will be determined by deserialization. Otherwise,
                 deserialization of either attribute will be skipped.
@@ -97,6 +97,10 @@ class Tag:
         name or payload attributes.
         """
         self.tagged: bool = tagged
+
+        # Permit nbt_data to be bytes
+        if isinstance(nbt_data, bytes):
+            nbt_data = memoryview(nbt_data)
 
         # If named is explicitly given, we'll use the passed value. Otherwise,
         # the value is inferred from other arguments.
@@ -139,12 +143,16 @@ class Tag:
         if self.named and self.name is None:
             self.name = ""
 
-    def deserialize(self, data: bytes):
+    def deserialize(self, data: memoryview):
         """
         Deserialize a blob of data and set the `name` and `payload` attributes
             of the tag.
         """
         self._size = 0
+
+        # Permit `data` to be bytes
+        if isinstance(data, bytes):
+            data = memoryview(data)
 
         # Tags in lists don't have a tag id byte.
         if self.tagged:
@@ -160,7 +168,7 @@ class Tag:
         self.deserialize_payload(data)
         assert self._size - self._prev_size >= 1  # all payloads use at least one byte
 
-    def deserialize_name(self, data: bytes):
+    def deserialize_name(self, data: memoryview):
         """ Sets the name attribute
         """
         # The size of the name is give by two Big Endian bytes, offset one from
@@ -182,10 +190,10 @@ class Tag:
             self.name = ""
             return
 
-        self.name = data[self._size:self._size + string_size].decode('utf-8')
+        self.name = data[self._size:self._size + string_size].tobytes().decode('utf-8')
         self.checkpoint(string_size)
 
-    def deserialize_payload(self, data: bytes):
+    def deserialize_payload(self, data: memoryview):
         """ Sets the payload attribute
 
         This is specific to each tag and implemented in the respective tag class.
@@ -193,11 +201,11 @@ class Tag:
         raise NotImplementedError
 
     def serialize(self) -> bytes:
-        """ Returns this tag's representation in bytes
+        """ Returns this tag's representation in memoryview
         """        
         # Special-case: TAG_End is defined as 0x00
         if isinstance(self, TAG_End):
-            return b'\x00'
+            return b"\x00"
 
         # Can't serialize a base-class!
         assert self.tid is not None
@@ -280,7 +288,7 @@ class TagInt(Tag):
     payload: int = None
     width: int = None
 
-    def deserialize_payload(self, data: bytes):
+    def deserialize_payload(self, data: memoryview):
         self.payload = int.from_bytes(
             data[self._size:self._size+self.width],
             byteorder='big',
@@ -327,9 +335,9 @@ class TagFloat(Tag):
     payload: bytes = None  # TODO make this a float
     width: int = None
 
-    def deserialize_payload(self, data: bytes):
+    def deserialize_payload(self, data: memoryview):
         # TODO cast this value to a float
-        self.payload = data[self._size:self._size + self.width]
+        self.payload = data[self._size:self._size + self.width].tobytes()
         self.checkpoint(self.width)
 
     def serialize_payload(self) -> bytes:
@@ -359,7 +367,7 @@ class TagIterable(Tag):
 
     The spec defines the payload as being an array of packed tags without an id
         or name field. This module uses types optimized for Python. For example,
-        TAG_Byte_Array's payload is a list of bytes rather than a list of id-less &
+        TAG_Byte_Array's payload is a list of memoryview rather than a list of id-less &
         nameless TAG_Byte instances.
 
     By definition, TAG_String is not considered iterable since it's payload is
@@ -368,7 +376,7 @@ class TagIterable(Tag):
         function to the "array_size_width" attribute.
     """
 
-    # Number of bytes that represent the number of elements in the iterable (if
+    # Number of memoryview that represent the number of elements in the iterable (if
     # a length field is provided by the tag at all, e.g. TAG_Compound uses
     # TAG_End to denote the end of its array).
     array_size_width: int = None
@@ -380,7 +388,7 @@ class TAG_Byte_Array(TagIterable):
     array_size_width = 4  # int
     payload: List[bytes] = None
 
-    def deserialize_payload(self, data: bytes):
+    def deserialize_payload(self, data: memoryview):
         self.payload = []
         array_size = int.from_bytes(
             data[self._size:self._size + self.array_size_width],
@@ -391,7 +399,7 @@ class TAG_Byte_Array(TagIterable):
 
         # Straight-forward walk of each byte, appending to the payload array.
         for _ in range(array_size):
-            self.payload.append(data[self._size:self._size + 1])
+            self.payload.append(data[self._size:self._size + 1].tobytes())
             self.checkpoint(1)
 
     def serialize_payload(self) -> bytes:
@@ -414,7 +422,7 @@ class TAG_String(Tag):
     payload: str = None
     string_size_width: int = 2  # short
 
-    def deserialize_payload(self, data: bytes):
+    def deserialize_payload(self, data: memoryview):
         string_size = int.from_bytes(
             data[self._size:self._size + self.string_size_width],
             byteorder='big',
@@ -426,7 +434,7 @@ class TAG_String(Tag):
             self.payload = ""
             return
 
-        self.payload = data[self._size:self._size + string_size].decode('utf-8')
+        self.payload = data[self._size:self._size + string_size].tobytes().decode('utf-8')
         self.checkpoint(string_size)
 
     def serialize_payload(self) -> bytes:
@@ -460,7 +468,7 @@ class TAG_List(TagIterable):
         self.tagID = tagID
         super(TAG_List, self).__init__(*args, **kwargs)
 
-    def deserialize_payload(self, data: bytes):
+    def deserialize_payload(self, data: memoryview):
         self.payload = []
 
         # Determine the tag type; this only gives us the class to instantiate
@@ -515,7 +523,7 @@ class TAG_Compound(TagIterable):
     tid = 0x0a
     payload: List[Tag] = None
 
-    def deserialize_payload(self, data: bytes):
+    def deserialize_payload(self, data: memoryview):
         self.payload = []
         while True:
             tag_id = data[self._size:][0]
@@ -548,7 +556,7 @@ class TagIterableNumeric(TagIterable):
     payload: List[int] = None
     width = None
 
-    def deserialize_payload(self, data: bytes):
+    def deserialize_payload(self, data: memoryview):
         self.payload = []
 
         # Determine the eventual number of elements in the list
@@ -627,17 +635,18 @@ TAG_TYPES: Dict[int, Tag] = {
 }
 
 
-def deserialize(nbt_data: bytes) -> List[Tag]:
+def deserialize(nbt_data: memoryview) -> List[Tag]:
     """ Deserialize NBT data and return a tree
     """
+    nbt_data = memoryview(nbt_data)  # permit nbt_data to be `bytes`; noop if memoryview
     nbt_tree = []
     total_bytes = len(nbt_data)
 
     # Each iteration of this loop processes one tag at the root of the tree.
     #
     # If there's only one root, the value of tag._size is equal to the total
-    # size (in bytes) of the data itself (since the one and only root tag
-    # comprises the entire data). If not, the bytes following the tag are
+    # size (in memoryview) of the data itself (since the one and only root tag
+    # comprises the entire data). If not, the memoryview following the tag are
     # considered a new tag.
     remaining_bytes = total_bytes
     while remaining_bytes > 0:
@@ -658,7 +667,7 @@ def deserialize(nbt_data: bytes) -> List[Tag]:
 
 
 def serialize(nbt_tree: List[Tag]) -> bytes:
-    """ Serialize an NBT tree and return uncompressed bytes
+    """ Serialize an NBT tree and return uncompressed memoryview
     """
     data = b''
     for tag in nbt_tree:
@@ -676,7 +685,7 @@ def extract_serialized_bytes(filename: str) -> bytes:
     # https://www.onicos.com/staff/iz/formats/gzip.html
     if file_data[0:2] == b'\x1f\x8b':
         import gzip
-        decompressed_data: bytes = gzip.decompress(file_data)
+        decompressed_data: memoryview = gzip.decompress(file_data)
         return decompressed_data
 
     return file_data
@@ -692,7 +701,7 @@ def deserialize_file(filename: str) -> List[Tag]:
 def serialize_file(filename: str, nbt_tree: List[Tag], compress: bool = True):
     """ Serialize an NBT tree, optionally compress the output, and to a file
     """
-    data: bytes = serialize(nbt_tree)
+    data: memoryview = serialize(nbt_tree)
     if compress:
         import gzip
         data = gzip.compress(data)
