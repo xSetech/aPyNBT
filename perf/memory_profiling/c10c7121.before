@@ -1,0 +1,1368 @@
+
+
+[<<class '__main__.MODULE.<locals>.TAG_Compound'> size=429709 name='' named=True tagged=True>]
+
+Filename: ./nbt.py
+
+Line #  >>Mem Incr.  >>Mem Total  <<Mem Total  <<Total Inc  Cum Mem Inc  Net Mem Inc  Cum Inc >=2  Net Inc >=2 Line Passes  Line Contents
+=========================================================================================================================================
+62188f 
+     37.1211      37.1211      37.1211      37.1211      37.1211      37.1211       0.0000       0.0000         1  @profile(precision=4)
+64bec3 
+                                                                                                                   def MODULE():
+cd3677 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class Tag:
+7e7fb2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          """ Base class of all tags """
+2381fa 
+                                                                                                                   
+d0474f 
+                                                                                                                           # "tag id", an immutable attribute of a specific subclass of Tag
+1a57f5 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid: int = None
+2381fa 
+                                                                                                                   
+f99031 
+                                                                                                                           # "name" and "payload" are mutable instance attributes collected either by
+ff914a 
+                                                                                                                           # deserialization of nbt data or by having them passed as arguments to the
+9ba601 
+                                                                                                                           # constructor.
+04c85f 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          name: str = None
+eff887 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          payload: Any = None
+2381fa 
+                                                                                                                   
+9321e5 
+      0.2539      51.1836      38.0078      13.1758       1.9219       1.9219       1.9219       1.9219     43161          def __init__(self, nbt_data: memoryview = None, name: str = None, payload: Any = None, named: bool = None, tagged: bool = True):
+c0548b 
+                                                                                                                               """ Instantiation for all decendent tag types
+2381fa 
+                                                                                                                   
+0206a2 
+                                                                                                                               The purpose of this method is to populate the three tag attributes (id,
+0250ec 
+                                                                                                                               name, and payload). Additional attributes are set for programmer
+dd82de 
+                                                                                                                               convinience. The "name" and "payload" attributes are populated based on
+417439 
+                                                                                                                               data in the byte array "nbt_data".
+a2e310 
+                                                                                                                               
+461a62 
+                                                                                                                               Args:
+2381fa 
+                                                                                                                   
+390895 
+                                                                                                                                   tagID::int
+9140b4 
+                                                                                                                                       The numeric identifier of the tag that's used as a key into
+718a0a 
+                                                                                                                                       TAG_TYPES to get the specific tag class.
+2381fa 
+                                                                                                                   
+0ec983 
+                                                                                                                                   nbt_data::memoryview
+495717 
+                                                                                                                                       If this parameter is not None, then the name and payload
+a8892e 
+                                                                                                                                       attributes will be determined by deserialization. Otherwise,
+cd5864 
+                                                                                                                                       deserialization of either attribute will be skipped.
+2381fa 
+                                                                                                                   
+281304 
+                                                                                                                                       This is at least the binary/bytes representation of a tag
+d87167 
+                                                                                                                                       instance as it appears in a decompressed NBT file. Unused or
+2bb2e7 
+                                                                                                                                       unrelated bytes are permitted at the end. Therefore, in
+cd8801 
+                                                                                                                                       particular during deserialization, this *is not* the same as
+c05904 
+                                                                                                                                       the return value from the serialize() method.
+2381fa 
+                                                                                                                   
+76ffce 
+                                                                                                                                   name::str
+dcf22f 
+                                                                                                                                       If this parameter is not None, then the tag's "name" attribute
+44168c 
+                                                                                                                                       will be set to this value.
+2381fa 
+                                                                                                                   
+fe12c0 
+                                                                                                                                   payload::Any
+f31949 
+                                                                                                                                       If this parameter is not None, then the tag's "payload"
+97b5ee 
+                                                                                                                                       attribute will be set to this value.
+2381fa 
+                                                                                                                   
+292fb5 
+                                                                                                                                   named::bool
+21a4d5 
+                                                                                                                                       If deserializing, indicates the tag has bytes in nbt_data
+a3175a 
+                                                                                                                                       corresponding to the "name" attribute. If serializing, bytes
+00dc9a 
+                                                                                                                                       will be created to represent the attribute (a value of None
+0468a8 
+                                                                                                                                       will be treated as an empty string).
+2381fa 
+                                                                                                                   
+fb156a 
+                                                                                                                                   tagged::bool
+21a4d5 
+                                                                                                                                       If deserializing, indicates the tag has bytes in nbt_data
+d5c8dd 
+                                                                                                                                       corresponding to the "tid" attribute. If serializing, bytes
+ac01b4 
+                                                                                                                                       will be created to represent the attribute.
+2381fa 
+                                                                                                                   
+856f67 
+                                                                                                                               Note that TAG_End is a special case of just a single byte of zero. You
+9f380f 
+                                                                                                                               can think of it as a tag without bytes in nbt_data corresponding to the
+2a1f24 
+                                                                                                                               name or payload attributes.
+5ec2f2 
+                                                                                                                               """
+2052de 
+      0.2578      51.1836      38.0078      13.1758       2.5156       2.5156       2.5156       2.5156     43160              self.tagged: bool = tagged
+2381fa 
+                                                                                                                   
+169ec4 
+                                                                                                                               # Permit nbt_data to be bytes
+716ce7 
+      0.2500      51.1836      38.0078      13.1758       1.9844       1.9844       1.9844       1.9844     43160              if isinstance(nbt_data, bytes):
+b3078c 
+                                                                                                                                   nbt_data = memoryview(nbt_data)
+2381fa 
+                                                                                                                   
+12e2f8 
+                                                                                                                               # If named is explicitly given, we'll use the passed value. Otherwise,
+06df87 
+                                                                                                                               # the value is inferred from other arguments.
+2026b4 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     43160              if named is not None:
+aa3265 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4268                  self.named: bool = named
+4cb229 
+                                                                                                                               else:
+24b0ed 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38892                  if nbt_data is not None:
+df0fb5 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38892                      self.named = True
+ae12af 
+                                                                                                                                   else:
+988d9a 
+                                                                                                                                       if name is None:
+8f4c13 
+                                                                                                                                           self.named = False
+0092d7 
+                                                                                                                                       else:
+dc5cb6 
+                                                                                                                                           self.named = True
+2381fa 
+                                                                                                                   
+289edc 
+                                                                                                                               # self._size is the number of bytes processed during deserialization.
+358121 
+                                                                                                                               # It's incremented by the checkpoint() method. If the value is zero,
+501a0b 
+                                                                                                                               # then no deserialization has occured.
+c420aa 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     43160              self._size: int = 0
+0989e2 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     43160              self._prev_size: int = 0  # used for sanity checking
+2381fa 
+                                                                                                                   
+8dccf4 
+                                                                                                                               # Special-case; TAG_End are basically a tag id without a name or payload
+c70fb0 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     43160              if isinstance(self, TAG_End):
+555495 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4215                  self._size = 1  # 1 byte processed (tag id)
+a9320b 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4215                  return
+2381fa 
+                                                                                                                   
+a452f8 
+                                                                                                                               # If there's nothing to deserialize, then the name and payload
+42066a 
+                                                                                                                               # attributes can't be collected.
+e93d03 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38945              if nbt_data is not None:
+3291f8 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38945                  self.deserialize(nbt_data)
+2381fa 
+                                                                                                                   
+2c9247 
+                                                                                                                               # Regardless of whether deserialization was skipped, if either "name"
+b390c5 
+                                                                                                                               # or "payload" are passed as parameters, use them.
+0506ae 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38945              if name is not None:
+40da7b 
+                                                                                                                                   self.name = name
+dcf94b 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38945              if payload is not None:
+b92105 
+                                                                                                                                   self.payload = payload
+2381fa 
+                                                                                                                   
+bd6181 
+                                                                                                                               # Named tags with None-valued names are the same as empty-string valued
+8942ee 
+                                                                                                                               # named tags.
+ef6310 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38945              if self.named and self.name is None:
+ebff1b 
+                                                                                                                                   self.name = ""
+2381fa 
+                                                                                                                   
+a4d0cd 
+      0.2500      51.1836      38.0078      13.1758       0.5000       0.5000       0.5000       0.5000     38946          def deserialize(self, data: memoryview):
+5ec2f2 
+                                                                                                                               """
+951c25 
+                                                                                                                               Deserialize a blob of data and set the `name` and `payload` attributes
+c17986 
+                                                                                                                                   of the tag.
+5ec2f2 
+                                                                                                                               """
+21cc91 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38945              self._size = 0
+2381fa 
+                                                                                                                   
+df7932 
+                                                                                                                               # Permit `data` to be bytes
+9f5c1f 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38945              if isinstance(data, bytes):
+dbff88 
+                                                                                                                                   data = memoryview(data)
+2381fa 
+                                                                                                                   
+ff13d0 
+                                                                                                                               # Tags in lists don't have a tag id byte.
+a7d868 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38945              if self.tagged:
+dbf549 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     34677                  self._size += 1  # 1 byte processed (tag id)
+2381fa 
+                                                                                                                   
+190985 
+                                                                                                                               # Tags in lists don't have a name.
+8b55c6 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38945              if self.named:
+cdaca8 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     34677                  self.deserialize_name(data)
+4cb229 
+                                                                                                                               else:
+ebff1b 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4268                  self.name = ""
+2381fa 
+                                                                                                                   
+37f65c 
+                                                                                                                               # Reminder: Payload parsing may recurse!
+bd651e 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38945              self.deserialize_payload(data)
+c65bfb 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38945              assert self._size - self._prev_size >= 1  # all payloads use at least one byte
+2381fa 
+                                                                                                                   
+1c6cab 
+      0.2500      51.1836      38.0078      13.1758       0.2500       0.2500       0.2500       0.2500     34678          def deserialize_name(self, data: memoryview):
+354ac3 
+                                                                                                                               """ Sets the name attribute
+5ec2f2 
+                                                                                                                               """
+8b0f87 
+                                                                                                                               # The size of the name is give by two Big Endian bytes, offset one from
+4a154e 
+                                                                                                                               # the first byte (the tag id).
+8efca0 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     34677              string_size_width = 2  # length defined by a short
+839856 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     34677              string_size = int.from_bytes(
+b7c290 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     34677                  data[self._size:self._size + string_size_width],
+89edc6 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     34677                  byteorder='big',
+cf34fe 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     34677                  signed=False
+dff7fa 
+                                                                                                                               )
+aaf73b 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     34677              self.checkpoint(string_size_width)
+2381fa 
+                                                                                                                   
+273732 
+                                                                                                                               # NOTE: I've yet to define whether name or payload for TAG_String
+cd6990 
+                                                                                                                               # with a value of None has any semantic difference from emptry-string.
+777701 
+                                                                                                                               # As of writing this comment, a None-valued attribute just means the
+69bcba 
+                                                                                                                               # tag is "unnamed"; but we save the "named" attribute so that there's
+649824 
+                                                                                                                               # no ambiguity.
+013925 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     34677              if string_size == 0:
+ebff1b 
+      0.0000      38.0078       0.0000      38.0078       0.0000       0.0000       0.0000       0.0000         1                  self.name = ""
+a9320b 
+      0.0000      38.0078       0.0000      38.0078       0.0000       0.0000       0.0000       0.0000         1                  return
+2381fa 
+                                                                                                                   
+5560d7 
+      0.2539      51.1836      38.0078      13.1758       1.2656       1.2656       1.2656       1.2656     34676              self.name = data[self._size:self._size + string_size].tobytes().decode('utf-8')
+8e7ce4 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     34676              self.checkpoint(string_size)
+2381fa 
+                                                                                                                   
+70dc8c 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def deserialize_payload(self, data: memoryview):
+69ee58 
+                                                                                                                               """ Sets the payload attribute
+2381fa 
+                                                                                                                   
+056297 
+                                                                                                                               This is specific to each tag and implemented in the respective tag class.
+5ec2f2 
+                                                                                                                               """
+c16e14 
+                                                                                                                               raise NotImplementedError
+2381fa 
+                                                                                                                   
+287320 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def serialize(self) -> bytes:
+ff0fba 
+                                                                                                                               """ Returns this tag's representation in memoryview
+50010c 
+                                                                                                                               """        
+e48d30 
+                                                                                                                               # Special-case: TAG_End is defined as 0x00
+c70fb0 
+                                                                                                                               if isinstance(self, TAG_End):
+c6d349 
+                                                                                                                                   return b"\x00"
+2381fa 
+                                                                                                                   
+3d2084 
+                                                                                                                               # Can't serialize a base-class!
+ced569 
+                                                                                                                               assert self.tid is not None
+2381fa 
+                                                                                                                   
+45b20f 
+                                                                                                                               # The tag needs to at least have been initialized!
+4edf09 
+                                                                                                                               assert self.named is not None
+a1b09f 
+                                                                                                                               assert self.tagged is not None
+2381fa 
+                                                                                                                   
+2857a8 
+                                                                                                                               data = b''
+c3ba3d 
+                                                                                                                               data += self.serialize_tid()
+0240df 
+                                                                                                                               data += self.serialize_name()
+fc2ebb 
+                                                                                                                               data += self.serialize_payload()
+159d84 
+                                                                                                                               return data
+2381fa 
+                                                                                                                   
+f531ed 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def serialize_tid(self) -> bytes:
+bbf1bc 
+                                                                                                                               """ Convert the tag's id into its representation in bytes
+5ec2f2 
+                                                                                                                               """
+1388fc 
+                                                                                                                               if not self.tagged:
+f674ee 
+                                                                                                                                   return b''
+84c542 
+                                                                                                                               return self.tid.to_bytes(1, byteorder='big', signed=False)
+2381fa 
+                                                                                                                   
+80474d 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def serialize_name(self) -> bytes:
+d25e3f 
+                                                                                                                               """ Convert the tag's name into its representation in bytes
+2381fa 
+                                                                                                                   
+0d8755 
+                                                                                                                               The tag name is one or two parts. The first part is two bytes
+7fd1c9 
+                                                                                                                                   representing the length of the string, and then second is the
+f3d11e 
+                                                                                                                                   actual bytes of the string (utf-8 encoded).
+5ec2f2 
+                                                                                                                               """
+0ed906 
+                                                                                                                               if not self.named:
+f674ee 
+                                                                                                                                   return b''
+2381fa 
+                                                                                                                   
+bd6181 
+                                                                                                                               # Named tags with None-valued names are the same as empty-string valued
+5d80a1 
+                                                                                                                               # named tags. These lines handle the case of an NBT editor accidentally
+d7a144 
+                                                                                                                               # setting the attribute to None after instantiation.
+14aa87 
+                                                                                                                               if self.name is None:
+ebff1b 
+                                                                                                                                   self.name = ""
+2381fa 
+                                                                                                                   
+02bded 
+                                                                                                                               encoded_string = self.name.encode('utf-8')
+7161be 
+                                                                                                                               encoded_length = len(encoded_string).to_bytes(2, byteorder='big', signed=False)
+80415e 
+                                                                                                                               return encoded_length + encoded_string
+2381fa 
+                                                                                                                   
+3eaea1 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def serialize_payload(self) -> bytes:
+2915b7 
+                                                                                                                               """ Convert the tag's payload into its presentation in bytes
+2381fa 
+                                                                                                                   
+056297 
+                                                                                                                               This is specific to each tag and implemented in the respective tag class.
+5ec2f2 
+                                                                                                                               """
+c16e14 
+                                                                                                                               raise NotImplementedError
+2381fa 
+                                                                                                                   
+45b6a2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def validate(self):
+8cf73c 
+                                                                                                                               """ Validate the current tag's payload
+2381fa 
+                                                                                                                   
+5de3b4 
+                                                                                                                               No return value; an exception is raised if validation fails.
+bd9b24 
+                                                                                                                               Implementation is specific to each tag and implemented in the
+73e519 
+                                                                                                                               respective tag class.
+5ec2f2 
+                                                                                                                               """
+c16e14 
+                                                                                                                               raise NotImplementedError
+2381fa 
+                                                                                                                   
+6c16a5 
+      0.2500      51.1836      38.0078      13.1758       0.9961       0.9961       0.9961       0.9961    177369          def checkpoint(self, amount: int):
+b8ee26 
+                                                                                                                               """ Increase the value of self._size by some amount
+5ec2f2 
+                                                                                                                               """
+46aafa 
+      0.2578      51.1836      38.0078      13.1758       1.2500       1.2500       1.2500       1.2500    177368              self._prev_size = self._size
+451f5f 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000    177368              self._size += amount
+2381fa 
+                                                                                                                   
+a67bc5 
+      0.0000      51.1836      51.1836      51.1836       0.0000       0.0000       0.0000       0.0000         2          def __repr__(self) -> str:
+e772b0 
+                                                                                                                               """ See https://docs.python.org/3.6/reference/datamodel.html#object.__repr__
+5ec2f2 
+                                                                                                                               """
+6037e6 
+      0.0000      51.1836       0.0000      51.1836       0.0000       0.0000       0.0000       0.0000         1              return f"<{self.__class__} size={self._size} name='{self.name}' named={self.named} tagged={self.tagged}>"
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+20160d 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_End(Tag):
+bb4320 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          """ Special-case; see the __init__ of Tag """
+2381fa 
+                                                                                                                   
+5ee905 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x00
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+03c495 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TagInt(Tag):
+cbb602 
+                                                                                                                           """ Parent-class for tags with an integer-typed payload
+91b848 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          """
+2381fa 
+                                                                                                                   
+a11bf5 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          payload: int = None
+1a23a9 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          width: int = None
+2381fa 
+                                                                                                                   
+70dc8c 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     26140          def deserialize_payload(self, data: memoryview):
+88d010 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     26139              self.payload = int.from_bytes(
+0242f6 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     26139                  data[self._size:self._size+self.width],
+89edc6 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     26139                  byteorder='big',
+0ffbae 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     26139                  signed=True
+dff7fa 
+                                                                                                                               )
+259cae 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     26139              self.checkpoint(self.width)
+2381fa 
+                                                                                                                   
+3eaea1 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def serialize_payload(self) -> bytes:
+6ddd67 
+                                                                                                                               return self.payload.to_bytes(self.width, byteorder='big', signed=True)
+2381fa 
+                                                                                                                   
+45b6a2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def validate(self):
+d69976 
+                                                                                                                               assert isinstance(self.payload, int)
+7dcd4e 
+                                                                                                                               self.payload.to_bytes(self.width, byteorder='big', signed=True)
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+09f088 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_Byte(TagInt):
+2381fa 
+                                                                                                                   
+5dcefa 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x01
+601015 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          width = 1
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+fe5041 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_Short(TagInt):
+2381fa 
+                                                                                                                   
+50f888 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x02
+f2ef93 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          width = 2
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+1a558b 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_Int(TagInt):
+2381fa 
+                                                                                                                   
+a04fd6 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x03
+1ec3cd 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          width = 4
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+6ee4c4 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_Long(TagInt):
+2381fa 
+                                                                                                                   
+eca091 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x04
+280506 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          width = 8
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+b08c8e 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TagFloat(Tag):
+0d5ba3 
+                                                                                                                           """ Parent class for floating point tag types
+91b848 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          """
+2381fa 
+                                                                                                                   
+564970 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          payload: bytes = None  # TODO make this a float
+1a23a9 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          width: int = None
+2381fa 
+                                                                                                                   
+70dc8c 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def deserialize_payload(self, data: memoryview):
+49a97f 
+                                                                                                                               # TODO cast this value to a float
+7ac62a 
+                                                                                                                               self.payload = data[self._size:self._size + self.width].tobytes()
+259cae 
+                                                                                                                               self.checkpoint(self.width)
+2381fa 
+                                                                                                                   
+3eaea1 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def serialize_payload(self) -> bytes:
+e92758 
+                                                                                                                               # TODO actual deserialization of a float
+f62725 
+                                                                                                                               return self.payload
+2381fa 
+                                                                                                                   
+45b6a2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def validate(self):
+1c573e 
+                                                                                                                               pass  # TODO
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+62542e 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_Float(TagFloat):
+2381fa 
+                                                                                                                   
+1559cf 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x05
+1ec3cd 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          width = 4
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+475c7d 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_Double(TagFloat):
+2381fa 
+                                                                                                                   
+87d066 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x06
+280506 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          width = 8
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+198031 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TagIterable(Tag):
+4511bc 
+                                                                                                                           """ Parent-class for tags with an iterable payload
+2381fa 
+                                                                                                                   
+a247ca 
+                                                                                                                           Use for tags where the payload is defined as an "array" in the NBT spec.
+2381fa 
+                                                                                                                   
+498efb 
+                                                                                                                           The spec defines the payload as being an array of packed tags without an id
+046561 
+                                                                                                                               or name field. This module uses types optimized for Python. For example,
+bb0c68 
+                                                                                                                               TAG_Byte_Array's payload is a list of memoryview rather than a list of id-less &
+b12075 
+                                                                                                                               nameless TAG_Byte instances.
+2381fa 
+                                                                                                                   
+a97eb9 
+                                                                                                                           By definition, TAG_String is not considered iterable since it's payload is
+bef87f 
+                                                                                                                               not defined as an array in the spec. It therefore does not decend from this
+16aba1 
+                                                                                                                               class despite having a "string_size_width" attribute which is identical in
+f0916a 
+                                                                                                                               function to the "array_size_width" attribute.
+91b848 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          """
+2381fa 
+                                                                                                                   
+ea61c4 
+                                                                                                                           # Number of memoryview that represent the number of elements in the iterable (if
+d7bb68 
+                                                                                                                           # a length field is provided by the tag at all, e.g. TAG_Compound uses
+eb3be2 
+                                                                                                                           # TAG_End to denote the end of its array).
+66c699 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          array_size_width: int = None
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+31cfc1 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_Byte_Array(TagIterable):
+2381fa 
+                                                                                                                   
+c0b98c 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x07
+fefbdd 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          array_size_width = 4  # int
+a9d16d 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          payload: List[bytes] = None
+2381fa 
+                                                                                                                   
+70dc8c 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def deserialize_payload(self, data: memoryview):
+10bc08 
+                                                                                                                               self.payload = []
+ef73c8 
+                                                                                                                               array_size = int.from_bytes(
+5f1504 
+                                                                                                                                   data[self._size:self._size + self.array_size_width],
+89edc6 
+                                                                                                                                   byteorder='big',
+cf34fe 
+                                                                                                                                   signed=False
+dff7fa 
+                                                                                                                               )
+93e168 
+                                                                                                                               self.checkpoint(self.array_size_width)
+2381fa 
+                                                                                                                   
+728385 
+                                                                                                                               # Straight-forward walk of each byte, appending to the payload array.
+e9c371 
+                                                                                                                               for _ in range(array_size):
+3e6551 
+                                                                                                                                   self.payload.append(data[self._size:self._size + 1].tobytes())
+c41f4c 
+                                                                                                                                   self.checkpoint(1)
+2381fa 
+                                                                                                                   
+3eaea1 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def serialize_payload(self) -> bytes:
+f69421 
+                                                                                                                               data = len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
+f3d954 
+                                                                                                                               for b in self.payload:
+f4be99 
+                                                                                                                                   data += b
+159d84 
+                                                                                                                               return data
+2381fa 
+                                                                                                                   
+45b6a2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def validate(self):
+baf935 
+                                                                                                                               assert isinstance(self.payload, list)
+33f9e2 
+                                                                                                                               if self.payload:
+aa5841 
+                                                                                                                                   for value in self.payload:
+ca3998 
+                                                                                                                                       assert isinstance(value, bytes)
+26fbdb 
+                                                                                                                                       assert len(value) == 1
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+7e02cd 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_String(Tag):
+2381fa 
+                                                                                                                   
+b6d29a 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x08
+7fce9e 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          payload: str = None
+9778f1 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          string_size_width: int = 2  # short
+2381fa 
+                                                                                                                   
+70dc8c 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4213          def deserialize_payload(self, data: memoryview):
+839856 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4212              string_size = int.from_bytes(
+5fa65a 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4212                  data[self._size:self._size + self.string_size_width],
+89edc6 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4212                  byteorder='big',
+cf34fe 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4212                  signed=False
+dff7fa 
+                                                                                                                               )
+005570 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4212              self.checkpoint(self.string_size_width)
+2381fa 
+                                                                                                                   
+013925 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4212              if string_size == 0:
+1896b9 
+                                                                                                                                   self.payload = ""
+a9320b 
+                                                                                                                                   return
+2381fa 
+                                                                                                                   
+4257fe 
+      0.2500      51.1836      38.0078      13.1758       0.2500       0.2500       0.2500       0.2500      4212              self.payload = data[self._size:self._size + string_size].tobytes().decode('utf-8')
+8e7ce4 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4212              self.checkpoint(string_size)
+2381fa 
+                                                                                                                   
+3eaea1 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def serialize_payload(self) -> bytes:
+2857a8 
+                                                                                                                               data = b''
+3fb9ca 
+                                                                                                                               encoded_string = self.payload.encode('utf-8')
+255d64 
+                                                                                                                               data += len(encoded_string).to_bytes(self.string_size_width, byteorder='big', signed=False)
+4699fc 
+                                                                                                                               data += encoded_string
+159d84 
+                                                                                                                               return data
+2381fa 
+                                                                                                                   
+45b6a2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def validate(self):
+ec64b0 
+                                                                                                                               assert isinstance(self.payload, str)
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+ae3102 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_List(TagIterable):
+2381fa 
+                                                                                                                   
+b2c4f4 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x09
+fefbdd 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          array_size_width = 4  # int
+6cd832 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tagID: int = None  # "A list with tags having a tid of tagID"
+f717b2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          payload: List[Tag] = None
+2381fa 
+                                                                                                                   
+820d3d 
+      0.2461      50.9297      38.0078      12.9219       0.2461       0.2461       0.2461       0.2461        73          def __init__(self, *args, tagID: int = None, **kwargs,):
+5ec2f2 
+                                                                                                                               """
+f37800 
+                                                                                                                               The "tagID" attribute (as its called in the spec) is unique to
+688f9e 
+                                                                                                                                   TAG_List. The value gives the type of the tags stored in the payload.
+8a4a43 
+                                                                                                                                   An empty Python list drops this information (which could be recovered
+0703e7 
+                                                                                                                                   by otherwise looking at the first element of the list).
+2381fa 
+                                                                                                                   
+dd9be2 
+                                                                                                                               self.serialize() will fail with an AssertionError if this attribute is
+d043b2 
+                                                                                                                                   not set and the payload is an empty list!
+5ec2f2 
+                                                                                                                               """
+829f52 
+      0.0000      50.9297      38.0078      12.9219       0.0000       0.0000       0.0000       0.0000        72              self.tagID = tagID
+67467c 
+      0.0000      51.1836      38.4297      12.7539       0.0000       0.0000       0.0000       0.0000        72              super(TAG_List, self).__init__(*args, **kwargs)
+2381fa 
+                                                                                                                   
+70dc8c 
+      0.0000      50.9297      38.0078      12.9219       0.0000       0.0000       0.0000       0.0000        73          def deserialize_payload(self, data: memoryview):
+10bc08 
+      0.0000      50.9297      38.0078      12.9219       0.0000       0.0000       0.0000       0.0000        72              self.payload = []
+2381fa 
+                                                                                                                   
+34b04c 
+                                                                                                                               # Determine the tag type; this only gives us the class to instantiate
+ee4e5c 
+      0.0000      50.9297      38.0078      12.9219       0.0000       0.0000       0.0000       0.0000        72              tag_id = data[self._size:self._size + 1][0]
+1d7208 
+      0.0000      50.9297      38.0078      12.9219       0.0000       0.0000       0.0000       0.0000        72              self.tagID = tag_id  # save for serialization
+c9c8be 
+      0.0000      50.9297      38.0078      12.9219       0.0000       0.0000       0.0000       0.0000        72              self.checkpoint(1)
+2381fa 
+                                                                                                                   
+81a94e 
+                                                                                                                               # Determine the eventual number of elements in the list
+ef73c8 
+      0.0000      50.9297      38.0078      12.9219       0.0000       0.0000       0.0000       0.0000        72              array_size = int.from_bytes(
+5f1504 
+      0.0000      50.9297      38.0078      12.9219       0.0000       0.0000       0.0000       0.0000        72                  data[self._size:self._size + self.array_size_width],
+89edc6 
+      0.0000      50.9297      38.0078      12.9219       0.0000       0.0000       0.0000       0.0000        72                  byteorder='big',
+cf34fe 
+      0.0000      50.9297      38.0078      12.9219       0.0000       0.0000       0.0000       0.0000        72                  signed=False
+dff7fa 
+                                                                                                                               )
+93e168 
+      0.0000      50.9297      38.0078      12.9219       0.0000       0.0000       0.0000       0.0000        72              self.checkpoint(self.array_size_width)
+2381fa 
+                                                                                                                   
+72646e 
+                                                                                                                               # The size of each tag isn't known ahead of time. All we know is that
+f63649 
+                                                                                                                               # we need to append `array_size` tags to the list. Successive offsets
+f9175f 
+                                                                                                                               # into the data are determined by the sum of the sizes of the
+350b4b 
+                                                                                                                               # previously deserialized tags.
+e9c371 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4340              for _ in range(array_size):
+28c165 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4268                  tag = TAG_TYPES[tag_id](data[self._size:], named=False, tagged=False)
+5b9238 
+      0.2500      51.1836      38.0078      13.1758       0.2500       0.2500       0.2500       0.2500      4268                  self.payload.append(tag)
+ddea08 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4268                  self.checkpoint(tag._size)
+2381fa 
+                                                                                                                   
+3eaea1 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def serialize_payload(self) -> bytes:
+94a3d2 
+                                                                                                                               # See the docstring for TAG_List's constructor.
+016dbc 
+                                                                                                                               assert self.tagID is not None or self.payload is not None
+2381fa 
+                                                                                                                   
+c2e972 
+                                                                                                                               # self.tagID will not have been set if deserialization was skipped. We
+8a76e9 
+                                                                                                                               #   can recover it by looking at the first element of the list.
+1376a3 
+                                                                                                                               if self.tagID is None:
+4fc16e 
+                                                                                                                                   self.tagID = self.payload[0].tid
+2381fa 
+                                                                                                                   
+2857a8 
+                                                                                                                               data = b''
+cd8733 
+                                                                                                                               data += self.tagID.to_bytes(1, byteorder='big', signed=False)
+171bda 
+                                                                                                                               data += len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
+cd9556 
+                                                                                                                               for tag in self.payload:
+f19486 
+                                                                                                                                   data += tag.serialize()
+159d84 
+                                                                                                                               return data
+2381fa 
+                                                                                                                   
+45b6a2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def validate(self):
+baf935 
+                                                                                                                               assert isinstance(self.payload, list)
+33f9e2 
+                                                                                                                               if self.payload:
+aa5841 
+                                                                                                                                   for value in self.payload:
+661dd3 
+                                                                                                                                       assert value.__class__ in TAGS
+7781cd 
+                                                                                                                                       assert not value.named
+21f8d2 
+                                                                                                                                       assert not value.tagged
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+601a92 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_Compound(TagIterable):
+2381fa 
+                                                                                                                   
+a69006 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x0a
+f717b2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          payload: List[Tag] = None
+2381fa 
+                                                                                                                   
+70dc8c 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4216          def deserialize_payload(self, data: memoryview):
+10bc08 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4215              self.payload = []
+334c49 
+      0.2500      51.1836      38.0078      13.1758       0.2500       0.2500       0.2500       0.2500      4215              while True:
+5fdd2e 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38891                  tag_id = data[self._size:][0]
+8e5779 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38891                  tag = TAG_TYPES[tag_id](data[self._size:])
+ddea08 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38891                  self.checkpoint(tag._size)
+5b9238 
+      0.2500      51.1836      38.0078      13.1758       0.5000       0.5000       0.5000       0.5000     38891                  self.payload.append(tag)
+4eb155 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     38891                  if isinstance(tag, TAG_End):
+610b68 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4215                      break
+2381fa 
+                                                                                                                   
+3eaea1 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def serialize_payload(self) -> bytes:
+b5dbeb 
+                                                                                                                               assert isinstance(self.payload[-1], TAG_End)
+2857a8 
+                                                                                                                               data = b''
+cd9556 
+                                                                                                                               for tag in self.payload:
+f19486 
+                                                                                                                                   data += tag.serialize()
+159d84 
+                                                                                                                               return data
+2381fa 
+                                                                                                                   
+45b6a2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def validate(self):
+baf935 
+                                                                                                                               assert isinstance(self.payload, list)
+33f9e2 
+                                                                                                                               if self.payload:
+aa5841 
+                                                                                                                                   for value in self.payload:
+661dd3 
+                                                                                                                                       assert value.__class__ in TAGS
+b5dbeb 
+                                                                                                                               assert isinstance(self.payload[-1], TAG_End)
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+adff5f 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TagIterableNumeric(TagIterable):
+bc81f9 
+                                                                                                                           """ Parent-class for lists of numerics
+91b848 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          """
+2381fa 
+                                                                                                                   
+fefbdd 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          array_size_width = 4  # int
+ed824d 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          payload: List[int] = None
+706b2e 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          width = None
+2381fa 
+                                                                                                                   
+70dc8c 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4308          def deserialize_payload(self, data: memoryview):
+10bc08 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4307              self.payload = []
+2381fa 
+                                                                                                                   
+81a94e 
+                                                                                                                               # Determine the eventual number of elements in the list
+ef73c8 
+      0.2500      51.1836      38.0078      13.1758       0.4961       0.4961       0.4961       0.4961      4307              array_size = int.from_bytes(
+5f1504 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4307                  data[self._size:self._size + self.array_size_width],
+89edc6 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4307                  byteorder='big',
+cf34fe 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4307                  signed=False
+dff7fa 
+                                                                                                                               )
+93e168 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000      4307              self.checkpoint(self.array_size_width)
+2381fa 
+                                                                                                                   
+345564 
+                                                                                                                               # Straight-forward walk of each int/long, appending to the payload array.
+e9c371 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     30149              for _ in range(array_size):
+221ba2 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     25842                  int_value = int.from_bytes(
+6f8fd1 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     25842                      data[self._size:self._size + self.width],
+a7509a 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     25842                      byteorder='big',
+8cc962 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     25842                      signed=True
+75fcb8 
+                                                                                                                                   )
+df0128 
+      0.2500      51.1836      38.0078      13.1758       0.5000       0.5000       0.5000       0.5000     25842                  self.payload.append(int_value)
+365e4f 
+      0.0000      51.1836      38.0078      13.1758       0.0000       0.0000       0.0000       0.0000     25842                  self.checkpoint(self.width)
+2381fa 
+                                                                                                                   
+3eaea1 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def serialize_payload(self) -> bytes:
+2857a8 
+                                                                                                                               data = b''
+171bda 
+                                                                                                                               data += len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
+b6bb9c 
+                                                                                                                               for numeric in self.payload:
+2a39f2 
+                                                                                                                                   data += numeric.to_bytes(
+007ff7 
+                                                                                                                                       self.width,
+a7509a 
+                                                                                                                                       byteorder='big',
+8cc962 
+                                                                                                                                       signed=True
+75fcb8 
+                                                                                                                                   )
+159d84 
+                                                                                                                               return data
+2381fa 
+                                                                                                                   
+45b6a2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          def validate(self):
+baf935 
+                                                                                                                               assert isinstance(self.payload, list)
+33f9e2 
+                                                                                                                               if self.payload:
+aa5841 
+                                                                                                                                   for value in self.payload:
+29d07f 
+                                                                                                                                       assert isinstance(value, int)
+7a58de 
+                                                                                                                                       value.to_bytes(self.width, byteorder='big', signed=True)
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+019f7b 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_Int_Array(TagIterableNumeric):
+2381fa 
+                                                                                                                   
+774064 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x0b
+3636a2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          width = 4  # int
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+232d50 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000         3      class TAG_Long_Array(TagIterableNumeric):
+2381fa 
+                                                                                                                   
+31ff3c 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          tid = 0x0c
+7a9478 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          width = 8  # long
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+e18e6b 
+                                                                                                                       # Official "tags" as defined by the spec and Minecraft wiki.
+73a35b 
+                                                                                                                       #
+0e03da 
+                                                                                                                       # According to the wiki, some tags will only be seen from and usable on newer
+d8eb8c 
+                                                                                                                       #   versions of Minecraft. For the sake of simplicity, this module doesn't
+54cc49 
+                                                                                                                       #   account for NBT versions or Java-specific limitations.
+9d9ac5 
+                                                                                                                       TAGS: Tuple[Tag] = (
+0536ca 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_End,
+0f9cdf 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_Byte,
+ea6e4c 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_Short,
+050b84 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_Int,
+2ae6a4 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_Long,
+66d9ec 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_Float,
+5e9cd6 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_Double,
+45d754 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_Byte_Array,
+e21f1b 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_String,
+810e88 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_List,
+7554be 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_Compound,
+ef71a0 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_Int_Array,
+d36ab6 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          TAG_Long_Array
+2ccf38 
+                                                                                                                       )
+2381fa 
+                                                                                                                   
+649d23 
+                                                                                                                       # A mapping from tag id to tag classes is generally useful.
+b68ca7 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000        16      TAG_TYPES: Dict[int, Tag] = {
+a063e6 
+      0.0000      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000       0.0000        14          tag_class.tid: tag_class for tag_class in TAGS
+a12ca2 
+                                                                                                                       }
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+6f1142 
+      0.0000      38.0078      38.0078      38.0078       0.0000       0.0000       0.0000       0.0000         2      def deserialize(nbt_data: memoryview) -> List[Tag]:
+781d75 
+                                                                                                                           """ Deserialize NBT data and return a tree
+91b848 
+                                                                                                                           """
+313fbc 
+      0.0000      38.0078       0.0000      38.0078       0.0000       0.0000       0.0000       0.0000         1          nbt_data = memoryview(nbt_data)  # permit nbt_data to be `bytes`; noop if memoryview
+b0b8b6 
+      0.0000      38.0078       0.0000      38.0078       0.0000       0.0000       0.0000       0.0000         1          nbt_tree = []
+9ef38f 
+      0.0000      38.0078       0.0000      38.0078       0.0000       0.0000       0.0000       0.0000         1          total_bytes = len(nbt_data)
+2381fa 
+                                                                                                                   
+3536c5 
+                                                                                                                           # Each iteration of this loop processes one tag at the root of the tree.
+44f412 
+                                                                                                                           #
+e27ddd 
+                                                                                                                           # If there's only one root, the value of tag._size is equal to the total
+47ec50 
+                                                                                                                           # size (in memoryview) of the data itself (since the one and only root tag
+783afd 
+                                                                                                                           # comprises the entire data). If not, the memoryview following the tag are
+2311a3 
+                                                                                                                           # considered a new tag.
+d09746 
+      0.0000      38.0078       0.0000      38.0078       0.0000       0.0000       0.0000       0.0000         1          remaining_bytes = total_bytes
+4443d6 
+      0.0000      51.1836      51.1836      51.1836       0.0000       0.0000       0.0000       0.0000         2          while remaining_bytes > 0:
+2381fa 
+                                                                                                                   
+024c52 
+      0.0000      38.0078       0.0000      38.0078       0.0000       0.0000       0.0000       0.0000         1              index = total_bytes - remaining_bytes
+98d3cd 
+      0.0000      38.0078       0.0000      38.0078       0.0000       0.0000       0.0000       0.0000         1              tag_id = nbt_data[index:][0]
+3aa0d1 
+      0.0000      51.1836       0.0000      51.1836       0.0000       0.0000       0.0000       0.0000         1              tag = TAG_TYPES[tag_id](nbt_data[index:])
+2381fa 
+                                                                                                                   
+f35115 
+                                                                                                                               # This assert prevents the while loop from spinning forever in the
+13dafc 
+                                                                                                                               # highly-unlikely event of tag._size being zero or negative (most likely
+01253d 
+                                                                                                                               # due to a bug).
+3e4b5e 
+      0.0000      51.1836       0.0000      51.1836       0.0000       0.0000       0.0000       0.0000         1              assert tag._size >= 1
+2381fa 
+                                                                                                                   
+340f3c 
+      0.0000      51.1836       0.0000      51.1836       0.0000       0.0000       0.0000       0.0000         1              remaining_bytes -= tag._size
+9b4e61 
+      0.0000      51.1836       0.0000      51.1836       0.0000       0.0000       0.0000       0.0000         1              nbt_tree.append(tag)
+2381fa 
+                                                                                                                   
+cbcd63 
+      0.0000      51.1836       0.0000      51.1836       0.0000       0.0000       0.0000       0.0000         1          return nbt_tree
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+6db9ef 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1      def serialize(nbt_tree: List[Tag]) -> bytes:
+ae9ff4 
+                                                                                                                           """ Serialize an NBT tree and return uncompressed memoryview
+91b848 
+                                                                                                                           """
+87822a 
+                                                                                                                           data = b''
+e5ca72 
+                                                                                                                           for tag in nbt_tree:
+0ecf31 
+                                                                                                                               data += tag.serialize()
+cb17f2 
+                                                                                                                           return data
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+27f062 
+      0.0000      37.1211      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000         2      def extract_serialized_bytes(filename: str) -> bytes:
+f889ec 
+                                                                                                                           """ Return uncompressed serialized NBT
+91b848 
+                                                                                                                           """
+b39fe8 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          with open(filename, 'rb') as nbt_file:
+8d18b3 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1              file_data = nbt_file.read()
+2381fa 
+                                                                                                                   
+85a236 
+                                                                                                                           # The file may or may not be compressed. Check for the magic number to know!
+f2e511 
+                                                                                                                           # https://www.onicos.com/staff/iz/formats/gzip.html
+57680e 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1          if file_data[0:2] == b'\x1f\x8b':
+d032b1 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1              import gzip
+857446 
+      0.8867      38.0078       0.8867      38.0078       0.8867       0.8867       0.0000       0.0000         1              decompressed_data: memoryview = gzip.decompress(file_data)
+53eeec 
+      0.0000      38.0078       0.0000      38.0078       0.0000       0.0000       0.0000       0.0000         1              return decompressed_data
+2381fa 
+                                                                                                                   
+8729c5 
+                                                                                                                           return file_data
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+5c9593 
+      0.0000      37.1211      37.1211      37.1211       0.0000       0.0000       0.0000       0.0000         2      def deserialize_file(filename: str) -> List[Tag]:
+f0df8a 
+                                                                                                                           """ Deserialize a GZip compressed or uncompressed NBT file
+91b848 
+                                                                                                                           """
+895dd5 
+      0.0000      38.0078       0.0000      38.0078       0.0000       0.0000       0.0000       0.0000         1          serialized_nbt_data = extract_serialized_bytes(filename)
+3d4d0a 
+      0.0000      51.1836       0.0000      51.1836       0.0000       0.0000       0.0000       0.0000         1          return deserialize(serialized_nbt_data)
+2381fa 
+                                                                                                                   
+2381fa 
+                                                                                                                   
+acad7a 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1      def serialize_file(filename: str, nbt_tree: List[Tag], compress: bool = True):
+354afc 
+                                                                                                                           """ Serialize an NBT tree, optionally compress the output, and to a file
+91b848 
+                                                                                                                           """
+a7eb44 
+                                                                                                                           data: memoryview = serialize(nbt_tree)
+9b4405 
+                                                                                                                           if compress:
+d032b1 
+                                                                                                                               import gzip
+b45899 
+                                                                                                                               data = gzip.compress(data)
+39fd44 
+                                                                                                                           with open(filename, 'wb') as f:
+abc319 
+                                                                                                                               f.write(data)
+2381fa 
+                                                                                                                   
+eea8c2 
+      0.0000      37.1211       0.0000      37.1211       0.0000       0.0000       0.0000       0.0000         1      print()
+e6906f 
+      0.0000      51.1836       0.0000      51.1836       0.0000       0.0000       0.0000       0.0000         1      x = deserialize_file("test_data/WORLDS/MC 1_12_2 World/data/Mineshaft.dat")
+eea8c2 
+      0.0000      51.1836       0.0000      51.1836       0.0000       0.0000       0.0000       0.0000         1      print()
+61f13d 
+      0.0000      51.1836       0.0000      51.1836       0.0000       0.0000       0.0000       0.0000         1      print(x)
+eea8c2 
+      0.0000      51.1836       0.0000      51.1836       0.0000       0.0000       0.0000       0.0000         1      print()
+
+
