@@ -5,25 +5,29 @@
 import gzip
 import os
 from pathlib import Path
+import random
 from typing import List, Tuple
 
 import pytest
 
 import nbt
 
-# _find_all_test_data() will search through test_data/ finding files with these
-# extensions. These are expected to be files which only contain NBT data
-# (compressed or uncompressed).
+# Search for files starting in this directory:
+DEFAULT_TEST_DATA_PATH = Path("test_data/")
+
+# Consider files with these extensions to contain NBT data (compressed or uncompressed):
 NBT_FILE_SUFFIXES: Tuple[str] = (
     ".dat",
 )
 
 # These files will be ignored:
 DEFINTELY_NOT_NBT_BLACKLIST: Tuple[str] = (
-    "uid.dat",  # Undocumented. Maybe related to Realms? https://www.minecraftforum.net/forums/minecraft-java-edition/suggestions/79149-world-uid-for-multi-world-servers
+    "uid.dat",  # Undocumented. Maybe related to Realms?
+                # https://www.minecraftforum.net/forums/minecraft-java-edition/suggestions/79149-world-uid-for-multi-world-servers
 )
 
-def _find_all_test_data(root: Path = Path("test_data/")) -> List[Path]:
+
+def _find_all_test_data(root: Path = DEFAULT_TEST_DATA_PATH) -> List[Path]:
     """ Returns all testable NBT files
     """
     nbt_files = []
@@ -36,6 +40,16 @@ def _find_all_test_data(root: Path = Path("test_data/")) -> List[Path]:
                 if f.name not in DEFINTELY_NOT_NBT_BLACKLIST:
                     nbt_files.append(f)
                     continue
+
+    # Before returning the full list of files whose contents will be used as
+    # test data, ruin the natural ordering and locality from directory
+    # traversal. Similar files (such as player data) will trigger the same code
+    # paths which get optimized easily by modern* CPUs.
+    #
+    # * Modern meaning most x86_64; definitely not all RISC variants...
+    if root is DEFAULT_TEST_DATA_PATH:
+        random.shuffle(nbt_files)
+
     return nbt_files
 
 
