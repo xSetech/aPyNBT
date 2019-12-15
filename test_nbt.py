@@ -11,10 +11,17 @@ import pytest
 
 import nbt
 
+# _find_all_test_data() will search through test_data/ finding files with these
+# extensions. These are expected to be files which only contain NBT data
+# (compressed or uncompressed).
 NBT_FILE_SUFFIXES: Tuple[str] = (
     ".dat",
 )
 
+# These files will be ignored:
+DEFINTELY_NOT_NBT_BLACKLIST: Tuple[str] = (
+    "uid.dat",  # Undocumented. Maybe related to Realms? https://www.minecraftforum.net/forums/minecraft-java-edition/suggestions/79149-world-uid-for-multi-world-servers
+)
 
 def _find_all_test_data(root: Path = Path("test_data/")) -> List[Path]:
     """ Returns all testable NBT files
@@ -26,8 +33,9 @@ def _find_all_test_data(root: Path = Path("test_data/")) -> List[Path]:
             continue
         if f.is_file():
             if any([f.name.endswith(suffix) for suffix in NBT_FILE_SUFFIXES]):
-                nbt_files.append(f)
-                continue
+                if f.name not in DEFINTELY_NOT_NBT_BLACKLIST:
+                    nbt_files.append(f)
+                    continue
     return nbt_files
 
 
