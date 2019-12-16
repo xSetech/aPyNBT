@@ -12,68 +12,16 @@ import pytest
 
 import nbt
 
-# Search for files starting in this directory:
-DEFAULT_TEST_DATA_PATH = Path("test_data/")
 
-# Consider files with these extensions to contain NBT data (compressed or uncompressed):
-NBT_FILE_SUFFIXES: Tuple[str] = (
-    ".dat",
-)
-
-# These files will be ignored:
-DEFINTELY_NOT_NBT_BLACKLIST: Tuple[str] = (
-    "uid.dat",  # Undocumented. Maybe related to Realms?
-                # https://www.minecraftforum.net/forums/minecraft-java-edition/suggestions/79149-world-uid-for-multi-world-servers
-)
-
-
-def _find_all_test_data(root: Path = DEFAULT_TEST_DATA_PATH) -> List[Path]:
-    """ Returns all testable NBT files
-    """
-    nbt_files = []
-    for f in root.iterdir():
-        if f.is_dir():
-            nbt_files.extend(_find_all_test_data(f))
-            continue
-        if f.is_file():
-            if any([f.name.endswith(suffix) for suffix in NBT_FILE_SUFFIXES]):
-                if f.name not in DEFINTELY_NOT_NBT_BLACKLIST:
-                    nbt_files.append(f)
-                    continue
-
-    # Before returning the full list of files whose contents will be used as
-    # test data, ruin the natural ordering and locality from directory
-    # traversal. Similar files (such as player data) will trigger the same code
-    # paths which get optimized easily by modern* CPUs.
-    #
-    # * Modern meaning most x86_64; definitely not all RISC variants...
-    if root is DEFAULT_TEST_DATA_PATH:
-        random.shuffle(nbt_files)
-
-    return nbt_files
-
-
-TESTABLE_NBT_FILES: List[Path] = _find_all_test_data()
-
-
-@pytest.mark.parametrize(
-    "filepath", TESTABLE_NBT_FILES, ids=[str(filepath) for filepath in TESTABLE_NBT_FILES]
-)
 def test_deserialize_all_test_data(filepath: Path):
     nbt.deserialize_file(filepath)
 
 
-@pytest.mark.parametrize(
-    "filepath", TESTABLE_NBT_FILES, ids=[str(filepath) for filepath in TESTABLE_NBT_FILES]
-)
 def test_reserialize_all_test_data(filepath: Path):
     tree = nbt.deserialize_file(filepath)
     data = nbt.serialize(tree)
 
 
-@pytest.mark.parametrize(
-    "filepath", TESTABLE_NBT_FILES, ids=[str(filepath) for filepath in TESTABLE_NBT_FILES]
-)
 def test_reserialize_reference_compared(filepath: Path):
     """
     Same as test_reserialize_reference(), but compare the original bytes to the
