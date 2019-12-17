@@ -34,15 +34,12 @@ def _find_all_test_data(root: Path = DEFAULT_TEST_DATA_PATH) -> List[Path]:
                 if f.name not in DEFINTELY_NOT_NBT_BLACKLIST:
                     nbt_files.append(f)
                     continue
-
-    if root is DEFAULT_TEST_DATA_PATH:
-        random.shuffle(nbt_files)
-
     return nbt_files
 
 
-FILEPATH_FILES: List[Path] = _find_all_test_data()
-FILEPATH_IDS: List[str] = [str(filepath) for filepath in FILEPATH_FILES]
+# Initialized in pytest_configure()
+FILEPATH_FILES: List[Path] = None
+FILEPATH_IDS: List[str] = None
 
 
 def pytest_addoption(parser):
@@ -55,9 +52,9 @@ def pytest_configure(config):
 
     # --shuffle-files
     # --repeat-files
+    FILEPATH_FILES = _find_all_test_data()
     if config.getoption("repeat-files") > 0:
         filepath_files = []
-        filepath_ids = []
         for _ in range(config.getoption("repeat-files")):
             # Ruin the natural ordering and locality from directory traversal.
             # Similar files (such as player data) will trigger the same code paths
@@ -66,11 +63,9 @@ def pytest_configure(config):
             # * Modern meaning most x86_64; definitely not all RISC variants...
             if config.getoption("shuffle-files"):
                 random.shuffle(FILEPATH_FILES)
-                FILEPATH_IDS = [str(filepath) for filepath in FILEPATH_FILES]
             filepath_files.extend(FILEPATH_FILES)
-            filepath_ids.extend(FILEPATH_IDS)
         FILEPATH_FILES = filepath_files
-        FILEPATH_IDS = filepath_ids
+        FILEPATH_IDS = [str(filepath) for filepath in FILEPATH_FILES]
 
 
 def pytest_generate_tests(metafunc):
