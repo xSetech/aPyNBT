@@ -43,28 +43,46 @@ FILEPATH_IDS: List[str] = None
 
 
 def pytest_addoption(parser):
-    parser.addoption("--shuffle-files", action="store_true", dest="shuffle-files", help="Shuffle lists of files")
-    parser.addoption("--repeat-files", action="store", type=int, default=1, dest="repeat-files", help="Number of times to test all files")
+    g = paser.getgroup("Minecraft NBT Test Files")
+    g.addoption("--shuffle-files", action="store_true", dest="shuffle-files", help="Shuffle lists of files")
+    g.addoption("--repeat-files", action="store", type=int, default=1, dest="repeat-files", help="Number of times to test all files")
+    g.addoption("--limit-files", action="store", type=int, default=-1, dest="limit-files", help="Cap the number files")
+    g.addoption("--no-file-ids", action="store_true", dest="no-file-ids", help="Don't create test IDs out of filenames")
 
 
 def pytest_configure(config):
     global FILEPATH_FILES, FILEPATH_IDS
+    FILEPATH_FILES = []
 
-    # --shuffle-files
-    # --repeat-files
+    # --limit-files
+    max_files = config.getoption("limit-files")
+
+    # Skip finding files if the limit is zero
+    if max_files == 0:
+        return
+
     FILEPATH_FILES = _find_all_test_data()
+    if max_files > 0:
+        FILEPATH_FILES = [:max_files]
+
+    # --repeat-files
     if config.getoption("repeat-files") > 0:
         filepath_files = []
         for _ in range(config.getoption("repeat-files")):
-            # Ruin the natural ordering and locality from directory traversal.
-            # Similar files (such as player data) will trigger the same code paths
-            # which get optimized easily by modern* CPUs.
-            #
-            # * Modern meaning most x86_64; definitely not all RISC variants...
-            if config.getoption("shuffle-files"):
-                random.shuffle(FILEPATH_FILES)
             filepath_files.extend(FILEPATH_FILES)
         FILEPATH_FILES = filepath_files
+
+    # --shuffle-files
+    if config.getoption("shuffle-files"):
+        # Ruin the natural ordering and locality from directory traversal.
+        # Similar files (such as player data) will trigger the same code paths
+        # which get optimized easily by modern* CPUs.
+        #
+        # * Modern meaning most x86_64; definitely not all RISC variants...
+        random.shuffle(FILEPATH_FILES)
+
+    # --no-file-ids
+    if not config.getoption("no-file-ids"):
         FILEPATH_IDS = [str(filepath) for filepath in FILEPATH_FILES]
 
 
