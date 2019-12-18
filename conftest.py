@@ -62,8 +62,6 @@ def pytest_configure(config):
         return
 
     FILEPATH_FILES = _find_all_test_data()
-    if max_files > 0:
-        FILEPATH_FILES = FILEPATH_FILES[:max_files]
 
     # --repeat-files
     if config.getoption("repeat-files") > 0:
@@ -80,6 +78,9 @@ def pytest_configure(config):
         #
         # * Modern meaning most x86_64; definitely not all RISC variants...
         random.shuffle(FILEPATH_FILES)
+
+    if max_files > 0:
+        FILEPATH_FILES = FILEPATH_FILES[:max_files]
 
     # --no-file-ids
     if not config.getoption("no-file-ids"):
