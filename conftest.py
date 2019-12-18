@@ -2,9 +2,17 @@
 """ pytest configuration
 """
 
+import os
 from pathlib import Path
 import random
+import re
+import time
 from typing import List, Tuple
+
+import line_profiler
+import pytest
+
+import nbt
 
 # Search for files starting in this directory:
 DEFAULT_TEST_DATA_PATH = Path("test_data/")
@@ -48,11 +56,22 @@ def pytest_addoption(parser):
     g.addoption("--repeat-files", action="store", type=int, default=1, dest="repeat-files", help="Number of times to test all files")
     g.addoption("--limit-files", action="store", type=int, default=-1, dest="limit-files", help="Cap the number files")
     g.addoption("--no-file-ids", action="store_true", dest="no-file-ids", help="Don't create test IDs out of filenames")
+    g.addoption("--no-nbt-profiling", action="store_true", dest="no-nbt-profiling", help="Don't profile the nbt module during unit tests")
+
+
+PROFILING_NBT = True
 
 
 def pytest_configure(config):
-    global FILEPATH_FILES, FILEPATH_IDS
+    global FILEPATH_FILES, FILEPATH_IDS, PROFILING_NBT
     FILEPATH_FILES = []
+
+    # --no-nbt-profiling
+    PROFILING_NBT = not config.getoption("no-nbt-profiling")
+    if PROFILING_NBT:
+        if not os.path.exists("nbt_prof"):
+            os.mkdir("nbt_prof")
+        assert os.path.isdir("nbt_prof")
 
     # --limit-files
     max_files = config.getoption("limit-files")
@@ -85,6 +104,23 @@ def pytest_configure(config):
     # --no-file-ids
     if not config.getoption("no-file-ids"):
         FILEPATH_IDS = [str(filepath) for filepath in FILEPATH_FILES]
+
+
+CURRENT_TIME = int(time.time() * 1000)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_protocol(item, nextitem):
+    if not PROFILING_NBT:
+        return
+
+    lp = line_profiler.LineProfiler()
+    lp.add_module(nbt)
+    lp.enable_by_count()
+    yield
+    lp.disable_by_count()
+    profile_name = re.sub(r"[^-a-zA-Z0-9_\.]", "_", item.name)
+    lp.dump_stats(f"nbt_prof/{profile_name}.{CURRENT_TIME}.prof")
 
 
 def pytest_generate_tests(metafunc):
