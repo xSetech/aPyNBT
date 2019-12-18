@@ -1,3 +1,7 @@
+.coverage
+*cover
+*.prof
+*.stats
 .cache/
 test_data/
 *.swp
