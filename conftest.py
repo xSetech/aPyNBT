@@ -43,7 +43,7 @@ FILEPATH_IDS: List[str] = None
 
 
 def pytest_addoption(parser):
-    g = paser.getgroup("Minecraft NBT Test Files")
+    g = parser.getgroup("Minecraft NBT Test Files")
     g.addoption("--shuffle-files", action="store_true", dest="shuffle-files", help="Shuffle lists of files")
     g.addoption("--repeat-files", action="store", type=int, default=1, dest="repeat-files", help="Number of times to test all files")
     g.addoption("--limit-files", action="store", type=int, default=-1, dest="limit-files", help="Cap the number files")
@@ -63,7 +63,7 @@ def pytest_configure(config):
 
     FILEPATH_FILES = _find_all_test_data()
     if max_files > 0:
-        FILEPATH_FILES = [:max_files]
+        FILEPATH_FILES = FILEPATH_FILES[:max_files]
 
     # --repeat-files
     if config.getoption("repeat-files") > 0:
