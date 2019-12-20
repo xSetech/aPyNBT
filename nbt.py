@@ -103,10 +103,6 @@ class Tag:
         """
         self.tagged: bool = tagged
 
-        # Permit nbt_data to be bytes
-        if isinstance(nbt_data, bytes):
-            nbt_data = memoryview(nbt_data)
-
         # If named is explicitly given, we'll use the passed value. Otherwise,
         # the value is inferred from other arguments.
         if named is not None:
@@ -152,10 +148,6 @@ class Tag:
             of the tag.
         """
         self._size = 0
-
-        # Permit `data` to be bytes
-        if isinstance(data, bytes):
-            data = memoryview(data)
 
         # Tags in lists don't have a tag id byte.
         if self.tagged:

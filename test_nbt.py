@@ -68,17 +68,17 @@ def test_tag_named_attr():
     assert named_tag_with_name.name == "a tag name test"
 
     # More checks that that the named attribute is correctly inferred.
-    tag_from_deserialization1 = nbt.TAG_Byte(nbt_data=named_tag_with_name.serialize())
+    tag_from_deserialization1 = nbt.TAG_Byte(nbt_data=memoryview(named_tag_with_name.serialize()))
     assert tag_from_deserialization1.named == True
     assert tag_from_deserialization1.payload == 0
     assert tag_from_deserialization1.name == "a tag name test"
     assert tag_from_deserialization1.serialize() == named_tag_with_name.serialize()
 
-    tag_from_deserialization2 = nbt.TAG_Byte(nbt_data=unnamed_tag1.serialize(), named=False)
+    tag_from_deserialization2 = nbt.TAG_Byte(nbt_data=memoryview(unnamed_tag1.serialize()), named=False)
     assert tag_from_deserialization2.named == False
 
     # The name attribute should overload any result from deserialization.
-    tag_from_deserialization3 = nbt.TAG_Byte(nbt_data=named_tag_with_name.serialize(), name="overloaded")
+    tag_from_deserialization3 = nbt.TAG_Byte(nbt_data=memoryview(named_tag_with_name.serialize()), name="overloaded")
     assert tag_from_deserialization3.named
     assert tag_from_deserialization3.name == "overloaded"
 
@@ -129,7 +129,7 @@ def test_tagint_payload_serialization(tag):
     for i in range(-10, 10):
         tag.payload = i                     # property setter test
         assert tag.payload == i             # property getter test
-        tag.deserialize(tag.serialize())    # assert reserialization doesnt mutate the payload value
+        tag.deserialize(memoryview(tag.serialize()))    # assert reserialization doesnt mutate the payload value
         assert tag.payload == i
 
 
@@ -215,7 +215,7 @@ def test_tag_string(string_val):
     # Serialize the previous tag and pass the resuting bytes to the constructor
     # of a new tag. This tests whether we can both correctly serialize and then
     # deserialize string values.
-    tag2 = nbt.TAG_String(nbt_data=tag.serialize(), named=False, tagged=False)
+    tag2 = nbt.TAG_String(nbt_data=memoryview(tag.serialize()), named=False, tagged=False)
     assert tag2.payload == string_val
 
 
