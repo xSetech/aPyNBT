@@ -33,6 +33,7 @@ Short summary:
 This was written and tested using Python 3.6
 """
 
+from struct import unpack
 from typing import Any, Dict, List, Tuple
 
 
@@ -164,16 +165,13 @@ class Tag:
         self._size = offset
 
     def deserialize_name(self, data: memoryview,
+            _unpack=unpack,
             _int_from_bytes=int.from_bytes,
             _memview_to_bytes=memoryview.tobytes,
             _bytes_decode=bytes.decode) -> int:
         """ Sets the name attribute
         """
-        string_size = _int_from_bytes(
-            data[:2],
-            byteorder='big',
-            signed=False
-        )
+        string_size = _unpack("!H", data[:2])[0]
         width = 2 + string_size
         self.name = _bytes_decode(_memview_to_bytes(data[2:width]))
         return width
