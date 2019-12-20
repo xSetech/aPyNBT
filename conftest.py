@@ -5,12 +5,14 @@
 import hashlib
 import os
 from pathlib import Path
+import pickle
 import random
 import re
 import time
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import line_profiler
+import _line_profiler
 import pytest
 
 import nbt
@@ -61,7 +63,8 @@ def pytest_addoption(parser):
     g.addoption("--limit-files", action="store", type=int, default=-1, dest="limit-files", help="Cap the number files")
     g.addoption("--file-ids", action="store_true", dest="file-ids", help="Don't create test IDs out of filenames")
     g.addoption("--nbt-profiling", action="store_true", dest="nbt-profiling", help="Profile the nbt module during unit test execution")
-    g.addoption("--public-profiling", action="store_true", dest="public-profiling", help="Save prof data named as hashed test parameter ids")
+    g.addoption("--public-profiling", action="store_true", dest="public-profiling", help="Save per-test prof data named as hashed test parameter ids")
+    g.addoption("--pertest-profiling", action="store_true", dest="pertest-profiling", help="Save prof data for each test & parameter combination")
 
 
 PROFILING_NBT = False
@@ -69,7 +72,7 @@ PUBLIC_PROFILING = False
 
 
 def pytest_configure(config):
-    global FILEPATH_FILES, FILEPATH_IDS, PROFILING_NBT, PUBLIC_PROFILING
+    global FILEPATH_FILES, FILEPATH_IDS, PERTEST_PROFILING, PROFILING_NBT, PUBLIC_PROFILING
     FILEPATH_FILES = []
 
     # --nbt-profiling
@@ -87,6 +90,9 @@ def pytest_configure(config):
             PROFILING_PUBLIC_DIR.mkdir()
         except FileExistsError:
             pass
+
+    # --pertest-profiling
+    PERTEST_PROFILING = config.getoption("pertest-profiling")
 
     # --limit-files
     max_files = config.getoption("limit-files")
@@ -122,6 +128,42 @@ def pytest_configure(config):
 
 
 CURRENT_TIME = int(time.time() * 1000)
+AGGREGATE_STATS = None
+
+
+def merge_line_stats(base: _line_profiler.LineStats, incr: _line_profiler.LineStats) -> None:
+    """ base += incr
+
+    LineStats.timings: Dict[Tuple[str, str, str], List[Tuple[const int, int, int]]]
+    """
+    # key -> (filename, first line number, function name)
+    # value -> [(line number, hit count, total time), ...]
+    for key, new_values in incr.timings.items():
+
+        if key not in base.timings:
+            base.timings[key] = incr.timings[key]
+            continue
+
+        line_to_hits: Dict[int, int] = {}
+        line_to_time: Dict[int, int] = {}
+
+        for base_value in base.timings[key]:
+            lineno, hits, tottime = base_value
+            line_to_hits[lineno] = hits
+            line_to_time[lineno] = tottime
+
+        for new_value in new_values:
+            lineno, hits, tottime = new_value
+            if lineno in line_to_hits.keys():
+                line_to_hits[lineno] += hits
+                line_to_time[lineno] += tottime
+                continue
+            line_to_hits[lineno] = hits
+            line_to_time[lineno] = tottime
+
+        base.timings[key] = []
+        for lineno in sorted(list(line_to_hits.keys())):
+            base.timings[key].append((lineno, line_to_hits[lineno], line_to_time[lineno]))
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -136,9 +178,24 @@ def pytest_runtest_protocol(item, nextitem):
     yield
     lp.disable_by_count()
 
-    # Profiling results will always have an entry in the Private/ directory.
-    # Item name hashing and saving to the public directory can be enabled with
-    # --public-profiling.
+    # All private profiling results are compiled and saved into one statistic.
+    # This singular statistic is saved in the Public/ directory.
+    global AGGREGATE_STATS
+    if AGGREGATE_STATS is None:
+        AGGREGATE_STATS = lp.get_stats()
+    else:
+        merge_line_stats(AGGREGATE_STATS, lp.get_stats())
+    with open(PROFILING_PUBLIC_DIR / f"aggregate.prof", 'wb') as f:
+        pickle.dump(AGGREGATE_STATS, f, pickle.HIGHEST_PROTOCOL)
+    with open(PROFILING_PUBLIC_DIR / f"aggregate.stats", 'w') as f:
+        line_profiler.show_text(AGGREGATE_STATS.timings, AGGREGATE_STATS.unit, stream=f)
+
+
+    # Profiling results will always have individual entries in the Private/
+    # directory. Item name hashing and saving to the public directory can be
+    # enabled with --public-profiling.
+    if not PERTEST_PROFILING:
+        return
     profile_name = re.sub(r"[^-a-zA-Z0-9_\.]", "_", item.name)
     lp.dump_stats(PROFILING_PRIVATE_DIR / f"{profile_name}.prof")
     with open(PROFILING_PRIVATE_DIR / f"{profile_name}.stats", 'w') as f:
