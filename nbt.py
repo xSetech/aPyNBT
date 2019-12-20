@@ -166,7 +166,6 @@ class Tag:
 
     def deserialize_name(self, data: memoryview,
             _unpack=unpack,
-            _int_from_bytes=int.from_bytes,
             _memview_to_bytes=memoryview.tobytes,
             _bytes_decode=bytes.decode) -> int:
         """ Sets the name attribute
@@ -599,22 +598,13 @@ class TagIterableNumeric(TagIterable):
     width = None
 
     def deserialize_payload(self, data: memoryview, _unpack=unpack) -> int:
-        self.payload = []
-
-        # Determine the eventual number of elements in the list
+        sformat, width = self.sformat, self.width
         array_size = _unpack("!I", data[:4])[0]
-        offset = 4
-
-        # Straight-forward walk of each int/long, appending to the payload array.
-        for _ in range(array_size):
-            int_value = int.from_bytes(
-                data[offset:offset + self.width],
-                byteorder='big',
-                signed=True
-            )
-            self.payload.append(int_value)
-            offset += self.width
-        return offset
+        self.payload = [
+            _unpack(sformat, data[4 + (width * idx):4 + (width * (idx + 1))])[0]
+            for idx in range(array_size)
+        ]
+        return 4 + (width * array_size)
 
     def serialize_payload(self) -> bytes:
         data = b''
@@ -639,12 +629,14 @@ class TAG_Int_Array(TagIterableNumeric):
 
     tid = 0x0b
     width = 4  # int
+    sformat = "!i"
 
 
 class TAG_Long_Array(TagIterableNumeric):
 
     tid = 0x0c
     width = 8  # long
+    sformat = "!l"
 
 
 # Official "tags" as defined by the spec and Minecraft wiki.
