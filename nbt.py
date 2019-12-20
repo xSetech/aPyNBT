@@ -395,15 +395,10 @@ class TAG_Byte_Array(TagIterable):
     array_size_width = 4  # int
     payload: List[bytes] = None
 
-    def deserialize_payload(self, data: memoryview) -> int:
-        array_size_width = self.array_size_width
-        array_size = int.from_bytes(
-            data[:array_size_width],
-            byteorder='big',
-            signed=False
-        )
-        self.payload = [data[array_size_width + idx:array_size_width + idx + 1].tobytes() for idx in range(0, array_size)]
-        return array_size_width + array_size
+    def deserialize_payload(self, data: memoryview, _unpack=unpack) -> int:
+        array_size = _unpack("!I", data[:4])[0]
+        self.payload = [data[4 + idx:5 + idx].tobytes() for idx in range(0, array_size)]
+        return 4 + array_size
 
     def serialize_payload(self) -> bytes:
         data = len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
@@ -428,18 +423,14 @@ class TAG_String(Tag):
     _is_primitive: bool = True
 
     @classmethod
-    def deserialize_primitive(cls, data: memoryview) -> Tuple[int, int]:
-        string_size = int.from_bytes(
-            data[:cls.string_size_width],
-            byteorder='big',
-            signed=False
-        )
+    def deserialize_primitive(cls, data: memoryview, _unpack=unpack) -> Tuple[int, int]:
+        string_size = _unpack("!H", data[:2])[0]
 
         if string_size == 0:
             return "", cls.string_size_width
 
-        string_width = cls.string_size_width + string_size
-        string_value = data[cls.string_size_width:string_width].tobytes().decode('utf-8')
+        string_width = 2 + string_size
+        string_value = data[2:string_width].tobytes().decode('utf-8')
         return string_value, string_width
 
     @classmethod
@@ -485,7 +476,7 @@ class TAG_List(TagIterable):
         self.tagID = tagID
         super(TAG_List, self).__init__(*args, **kwargs)
 
-    def deserialize_payload(self, data: memoryview) -> int:
+    def deserialize_payload(self, data: memoryview, _unpack=unpack) -> int:
         self.payload = []
 
         # Determine the tag type; this only gives us the class to instantiate
@@ -493,11 +484,7 @@ class TAG_List(TagIterable):
         self.tagID = tag_id  # save for serialization
 
         # Determine the eventual number of elements in the list
-        array_size = int.from_bytes(
-            data[1:1 + self.array_size_width],
-            byteorder='big',
-            signed=False
-        )
+        array_size = _unpack("!I", data[1:5])[0]
 
         # Optimization: Don't store a list of Tag instances.
         #
@@ -611,17 +598,12 @@ class TagIterableNumeric(TagIterable):
     payload: List[int] = None
     width = None
 
-    def deserialize_payload(self, data: memoryview) -> int:
+    def deserialize_payload(self, data: memoryview, _unpack=unpack) -> int:
         self.payload = []
 
         # Determine the eventual number of elements in the list
-        array_size_width = self.array_size_width
-        array_size = int.from_bytes(
-            data[:array_size_width],
-            byteorder='big',
-            signed=False
-        )
-        offset = array_size_width
+        array_size = _unpack("!I", data[:4])[0]
+        offset = 4
 
         # Straight-forward walk of each int/long, appending to the payload array.
         for _ in range(array_size):
