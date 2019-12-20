@@ -162,19 +162,22 @@ class Tag:
         # Reminder: Payload parsing may recurse!
         self.deserialize_payload(data)
 
-    def deserialize_name(self, data: memoryview):
+    def deserialize_name(self, data: memoryview,
+            _int_from_bytes=int.from_bytes,
+            _memview_to_bytes=memoryview.tobytes,
+            _bytes_decode=bytes.decode):
         """ Sets the name attribute
         """
         offset = self._size
 
-        string_size = int.from_bytes(
+        string_size = _int_from_bytes(
             data[offset:offset + 2],
             byteorder='big',
             signed=False
         )
         offset += 2
 
-        self.name = data[offset:offset + string_size].tobytes().decode('utf-8')
+        self.name = _bytes_decode(_memview_to_bytes(data[offset:offset + string_size]))
         self._size = offset + string_size
 
     def deserialize_payload(self, data: memoryview):
