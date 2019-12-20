@@ -147,40 +147,38 @@ class Tag:
         Deserialize a blob of data and set the `name` and `payload` attributes
             of the tag.
         """
-        self._size = 0
+        offset = 0
 
         # Tags in lists don't have a tag id byte.
         if self.tagged:
-            self._size += 1  # 1 byte processed (tag id)
+            offset = 1  # 1 byte processed (tag id)
 
         # Tags in lists don't have a name.
         if self.named:
-            self.deserialize_name(data)
+            offset += self.deserialize_name(data[offset:])
         else:
             self.name = ""
 
         # Reminder: Payload parsing may recurse!
-        self.deserialize_payload(data)
+        offset += self.deserialize_payload(data[offset:])
+        self._size = offset
 
     def deserialize_name(self, data: memoryview,
             _int_from_bytes=int.from_bytes,
             _memview_to_bytes=memoryview.tobytes,
-            _bytes_decode=bytes.decode):
+            _bytes_decode=bytes.decode) -> int:
         """ Sets the name attribute
         """
-        offset = self._size
-
         string_size = _int_from_bytes(
-            data[offset:offset + 2],
+            data[:2],
             byteorder='big',
             signed=False
         )
-        offset += 2
+        width = 2 + string_size
+        self.name = _bytes_decode(_memview_to_bytes(data[2:width]))
+        return width
 
-        self.name = _bytes_decode(_memview_to_bytes(data[offset:offset + string_size]))
-        self._size = offset + string_size
-
-    def deserialize_payload(self, data: memoryview):
+    def deserialize_payload(self, data: memoryview) -> int:
         """ Sets the payload attribute
 
         This is specific to each tag and implemented in the respective tag class.
@@ -300,9 +298,9 @@ class TagInt(Tag):
     def serialize_primitive(cls, value: int) -> bytes:
         return value.to_bytes(cls.width, byteorder='big', signed=True)
 
-    def deserialize_payload(self, data: memoryview):
-        self.payload, _ = self.deserialize_primitive(data[self._size:self._size+self.width])
-        self._size += self.width
+    def deserialize_payload(self, data: memoryview) -> int:
+        self.payload, width = self.deserialize_primitive(data)
+        return width
 
     def serialize_payload(self) -> bytes:
         return self.serialize_primitive(self.payload)
@@ -345,10 +343,11 @@ class TagFloat(Tag):
 
     _is_primitive: bool = False  # TODO TAG_Float is a float
 
-    def deserialize_payload(self, data: memoryview):
+    def deserialize_payload(self, data: memoryview) -> int:
         # TODO TAG_Float is a float
-        self.payload = data[self._size:self._size + self.width].tobytes()
-        self._size += self.width
+        width = self.width
+        self.payload = data[:width].tobytes()
+        return width
 
     def serialize_payload(self) -> bytes:
         # TODO TAG_Float is a float
@@ -398,19 +397,15 @@ class TAG_Byte_Array(TagIterable):
     array_size_width = 4  # int
     payload: List[bytes] = None
 
-    def deserialize_payload(self, data: memoryview):
-        offset = self._size
-
+    def deserialize_payload(self, data: memoryview) -> int:
+        array_size_width = self.array_size_width
         array_size = int.from_bytes(
-            data[offset:offset + self.array_size_width],
+            data[:array_size_width],
             byteorder='big',
             signed=False
         )
-        offset += self.array_size_width
-
-        # Straight-forward walk of each byte, appending to the payload array.
-        self.payload = [data[offset + idx:offset + idx + 1].tobytes() for idx in range(0, array_size)]
-        self._size += self.array_size_width + array_size
+        self.payload = [data[array_size_width + idx:array_size_width + idx + 1].tobytes() for idx in range(0, array_size)]
+        return array_size_width + array_size
 
     def serialize_payload(self) -> bytes:
         data = len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
@@ -461,9 +456,9 @@ class TAG_String(Tag):
         data += encoded_string
         return data
 
-    def deserialize_payload(self, data: memoryview):
+    def deserialize_payload(self, data: memoryview) -> int:
         self.payload, payload_width = self.deserialize_primitive(data[self._size:])
-        self._size += payload_width
+        return payload_width
 
     def serialize_payload(self) -> bytes:
         return self.serialize_primitive(self.payload)
@@ -492,22 +487,19 @@ class TAG_List(TagIterable):
         self.tagID = tagID
         super(TAG_List, self).__init__(*args, **kwargs)
 
-    def deserialize_payload(self, data: memoryview):
+    def deserialize_payload(self, data: memoryview) -> int:
         self.payload = []
-        offset = self._size
 
         # Determine the tag type; this only gives us the class to instantiate
-        tag_id = data[offset:offset + 1][0]
+        tag_id = data[:1][0]
         self.tagID = tag_id  # save for serialization
-        offset += 1
 
         # Determine the eventual number of elements in the list
         array_size = int.from_bytes(
-            data[offset:offset + self.array_size_width],
+            data[1:1 + self.array_size_width],
             byteorder='big',
             signed=False
         )
-        offset += self.array_size_width
 
         # Optimization: Don't store a list of Tag instances.
         #
@@ -529,19 +521,19 @@ class TAG_List(TagIterable):
         # know is that we need to append `array_size` tags to the list.
         # Successive offsets into the data are determined by the sum of the
         # sizes of the previously deserialized tags.
+        offset = 1 + self.array_size_width
         tag_type = TAG_TYPES[tag_id]
         if tag_type._is_primitive:
             for _ in range(array_size):
                 value, width = tag_type.deserialize_primitive(data[offset:])
                 self.payload.append(value)
                 offset += width
-                continue
         else:
             for _ in range(array_size):
                 tag = tag_type(data[offset:], named=False, tagged=False)
                 self.payload.append(tag)
                 offset += tag._size
-        self._size = offset
+        return offset
 
     def serialize_payload(self) -> bytes:
         # See the docstring for TAG_List's constructor.
@@ -586,10 +578,9 @@ class TAG_Compound(TagIterable):
     tid = 0x0a
     payload: List[Tag] = None
 
-    def deserialize_payload(self, data: memoryview):
+    def deserialize_payload(self, data: memoryview) -> int:
         self.payload = []
-        offset = self._size
-
+        offset = 0
         while True:
             tag_id = data[offset:][0]
             tag = TAG_TYPES[tag_id](data[offset:])
@@ -597,7 +588,7 @@ class TAG_Compound(TagIterable):
             self.payload.append(tag)
             if isinstance(tag, TAG_End):
                 break
-        self._size = offset
+        return offset
 
     def serialize_payload(self) -> bytes:
         assert isinstance(self.payload[-1], TAG_End)
@@ -622,17 +613,17 @@ class TagIterableNumeric(TagIterable):
     payload: List[int] = None
     width = None
 
-    def deserialize_payload(self, data: memoryview):
+    def deserialize_payload(self, data: memoryview) -> int:
         self.payload = []
-        offset = self._size
 
         # Determine the eventual number of elements in the list
+        array_size_width = self.array_size_width
         array_size = int.from_bytes(
-            data[offset:offset + self.array_size_width],
+            data[:array_size_width],
             byteorder='big',
             signed=False
         )
-        offset += self.array_size_width
+        offset = array_size_width
 
         # Straight-forward walk of each int/long, appending to the payload array.
         for _ in range(array_size):
@@ -643,7 +634,7 @@ class TagIterableNumeric(TagIterable):
             )
             self.payload.append(int_value)
             offset += self.width
-        self._size = offset
+        return offset
 
     def serialize_payload(self) -> bytes:
         data = b''
