@@ -121,10 +121,8 @@ class Tag:
                     self.named = True
 
         # self._size is the number of bytes processed during deserialization.
-        # It's incremented by the checkpoint() method. If the value is zero,
-        # then no deserialization has occured.
+        # If the value is zero, no deserialization has occured.
         self._size: int = 0
-        self._prev_size: int = 0  # used for sanity checking
 
         # Special-case; TAG_End are basically a tag id without a name or payload
         if isinstance(self, TAG_End):
@@ -171,7 +169,6 @@ class Tag:
 
         # Reminder: Payload parsing may recurse!
         self.deserialize_payload(data)
-        assert self._size - self._prev_size >= 1  # all payloads use at least one byte
 
     def deserialize_name(self, data: memoryview):
         """ Sets the name attribute
@@ -184,7 +181,6 @@ class Tag:
             byteorder='big',
             signed=False
         )
-        self.checkpoint(string_size_width)
 
         # NOTE: I've yet to define whether name or payload for TAG_String
         # with a value of None has any semantic difference from emptry-string.
@@ -193,10 +189,11 @@ class Tag:
         # no ambiguity.
         if string_size == 0:
             self.name = ""
+            self._size += 2
             return
 
         self.name = data[self._size:self._size + string_size].tobytes().decode('utf-8')
-        self.checkpoint(string_size)
+        self._size += 2 + string_size
 
     def deserialize_payload(self, data: memoryview):
         """ Sets the payload attribute
@@ -284,12 +281,6 @@ class Tag:
         """
         raise NotImplementedError
 
-    def checkpoint(self, amount: int):
-        """ Increase the value of self._size by some amount
-        """
-        self._prev_size = self._size
-        self._size += amount
-
     def __repr__(self) -> str:
         """ See https://docs.python.org/3.6/reference/datamodel.html#object.__repr__
         """
@@ -326,7 +317,7 @@ class TagInt(Tag):
 
     def deserialize_payload(self, data: memoryview):
         self.payload, _ = self.deserialize_primitive(data[self._size:self._size+self.width])
-        self.checkpoint(self.width)
+        self._size += self.width
 
     def serialize_payload(self) -> bytes:
         return self.serialize_primitive(self.payload)
@@ -372,7 +363,7 @@ class TagFloat(Tag):
     def deserialize_payload(self, data: memoryview):
         # TODO TAG_Float is a float
         self.payload = data[self._size:self._size + self.width].tobytes()
-        self.checkpoint(self.width)
+        self._size += self.width
 
     def serialize_payload(self) -> bytes:
         # TODO TAG_Float is a float
@@ -423,18 +414,18 @@ class TAG_Byte_Array(TagIterable):
     payload: List[bytes] = None
 
     def deserialize_payload(self, data: memoryview):
-        self.payload = []
+        offset = self._size
+
         array_size = int.from_bytes(
-            data[self._size:self._size + self.array_size_width],
+            data[offset:offset + self.array_size_width],
             byteorder='big',
             signed=False
         )
-        self.checkpoint(self.array_size_width)
+        offset += self.array_size_width
 
         # Straight-forward walk of each byte, appending to the payload array.
-        for _ in range(array_size):
-            self.payload.append(data[self._size:self._size + 1].tobytes())
-            self.checkpoint(1)
+        self.payload = [data[offset + idx:offset + idx + 1].tobytes() for idx in range(0, array_size)]
+        self._size += self.array_size_width + array_size
 
     def serialize_payload(self) -> bytes:
         data = len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
@@ -487,7 +478,7 @@ class TAG_String(Tag):
 
     def deserialize_payload(self, data: memoryview):
         self.payload, payload_width = self.deserialize_primitive(data[self._size:])
-        self.checkpoint(payload_width)
+        self._size += payload_width
 
     def serialize_payload(self) -> bytes:
         return self.serialize_primitive(self.payload)
@@ -518,19 +509,20 @@ class TAG_List(TagIterable):
 
     def deserialize_payload(self, data: memoryview):
         self.payload = []
+        offset = self._size
 
         # Determine the tag type; this only gives us the class to instantiate
-        tag_id = data[self._size:self._size + 1][0]
+        tag_id = data[offset:offset + 1][0]
         self.tagID = tag_id  # save for serialization
-        self.checkpoint(1)
+        offset += 1
 
         # Determine the eventual number of elements in the list
         array_size = int.from_bytes(
-            data[self._size:self._size + self.array_size_width],
+            data[offset:offset + self.array_size_width],
             byteorder='big',
             signed=False
         )
-        self.checkpoint(self.array_size_width)
+        offset += self.array_size_width
 
         # Optimization: Don't store a list of Tag instances.
         #
@@ -555,15 +547,16 @@ class TAG_List(TagIterable):
         tag_type = TAG_TYPES[tag_id]
         if tag_type._is_primitive:
             for _ in range(array_size):
-                value, width = tag_type.deserialize_primitive(data[self._size:])
+                value, width = tag_type.deserialize_primitive(data[offset:])
                 self.payload.append(value)
-                self.checkpoint(width)
+                offset += width
                 continue
         else:
             for _ in range(array_size):
-                tag = tag_type(data[self._size:], named=False, tagged=False)
+                tag = tag_type(data[offset:], named=False, tagged=False)
                 self.payload.append(tag)
-                self.checkpoint(tag._size)
+                offset += tag._size
+        self._size = offset
 
     def serialize_payload(self) -> bytes:
         # See the docstring for TAG_List's constructor.
@@ -610,13 +603,16 @@ class TAG_Compound(TagIterable):
 
     def deserialize_payload(self, data: memoryview):
         self.payload = []
+        offset = self._size
+
         while True:
-            tag_id = data[self._size:][0]
-            tag = TAG_TYPES[tag_id](data[self._size:])
-            self.checkpoint(tag._size)
+            tag_id = data[offset:][0]
+            tag = TAG_TYPES[tag_id](data[offset:])
+            offset += tag._size
             self.payload.append(tag)
             if isinstance(tag, TAG_End):
                 break
+        self._size = offset
 
     def serialize_payload(self) -> bytes:
         assert isinstance(self.payload[-1], TAG_End)
@@ -643,24 +639,26 @@ class TagIterableNumeric(TagIterable):
 
     def deserialize_payload(self, data: memoryview):
         self.payload = []
+        offset = self._size
 
         # Determine the eventual number of elements in the list
         array_size = int.from_bytes(
-            data[self._size:self._size + self.array_size_width],
+            data[offset:offset + self.array_size_width],
             byteorder='big',
             signed=False
         )
-        self.checkpoint(self.array_size_width)
+        offset += self.array_size_width
 
         # Straight-forward walk of each int/long, appending to the payload array.
         for _ in range(array_size):
             int_value = int.from_bytes(
-                data[self._size:self._size + self.width],
+                data[offset:offset + self.width],
                 byteorder='big',
                 signed=True
             )
             self.payload.append(int_value)
-            self.checkpoint(self.width)
+            offset += self.width
+        self._size = offset
 
     def serialize_payload(self) -> bytes:
         data = b''
