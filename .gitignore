@@ -8,3 +8,4 @@ test_data/
 __pycache__/
 prof/
 nbt_prof/
+perf/Private/

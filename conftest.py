@@ -2,6 +2,7 @@
 """ pytest configuration
 """
 
+import hashlib
 import os
 from pathlib import Path
 import random
@@ -28,6 +29,9 @@ DEFINTELY_NOT_NBT_BLACKLIST: Tuple[str] = (
                 # https://www.minecraftforum.net/forums/minecraft-java-edition/suggestions/79149-world-uid-for-multi-world-servers
 )
 
+PROFILING_PUBLIC_DIR = Path("perf/Public/")
+PROFILING_PRIVATE_DIR = Path("perf/Private/")
+
 
 def _find_all_test_data(root: Path = DEFAULT_TEST_DATA_PATH) -> List[Path]:
     """ Returns all testable NBT files
@@ -51,27 +55,38 @@ FILEPATH_IDS: List[str] = None
 
 
 def pytest_addoption(parser):
-    g = parser.getgroup("Minecraft NBT Test Files")
+    g = parser.getgroup("aPyNBT Test Control")
     g.addoption("--shuffle-files", action="store_true", dest="shuffle-files", help="Shuffle lists of files")
     g.addoption("--repeat-files", action="store", type=int, default=1, dest="repeat-files", help="Number of times to test all files")
     g.addoption("--limit-files", action="store", type=int, default=-1, dest="limit-files", help="Cap the number files")
-    g.addoption("--no-file-ids", action="store_true", dest="no-file-ids", help="Don't create test IDs out of filenames")
-    g.addoption("--no-nbt-profiling", action="store_true", dest="no-nbt-profiling", help="Don't profile the nbt module during unit tests")
+    g.addoption("--file-ids", action="store_true", dest="file-ids", help="Don't create test IDs out of filenames")
+    g.addoption("--nbt-profiling", action="store_true", dest="nbt-profiling", help="Profile the nbt module during unit test execution")
+    g.addoption("--public-profiling", action="store_true", dest="public-profiling", help="Save prof data named as hashed test parameter ids")
 
 
-PROFILING_NBT = True
+PROFILING_NBT = False
+PUBLIC_PROFILING = False
 
 
 def pytest_configure(config):
-    global FILEPATH_FILES, FILEPATH_IDS, PROFILING_NBT
+    global FILEPATH_FILES, FILEPATH_IDS, PROFILING_NBT, PUBLIC_PROFILING
     FILEPATH_FILES = []
 
-    # --no-nbt-profiling
-    PROFILING_NBT = not config.getoption("no-nbt-profiling")
+    # --nbt-profiling
+    PROFILING_NBT = config.getoption("nbt-profiling")
     if PROFILING_NBT:
-        if not os.path.exists("nbt_prof"):
-            os.mkdir("nbt_prof")
-        assert os.path.isdir("nbt_prof")
+        try:
+            PROFILING_PRIVATE_DIR.mkdir()
+        except FileExistsError:
+            pass
+
+    # --public-profiling
+    PUBLIC_PROFILING = config.getoption("public-profiling")
+    if PUBLIC_PROFILING:
+        try:
+            PROFILING_PUBLIC_DIR.mkdir()
+        except FileExistsError:
+            pass
 
     # --limit-files
     max_files = config.getoption("limit-files")
@@ -101,8 +116,8 @@ def pytest_configure(config):
     if max_files > 0:
         FILEPATH_FILES = FILEPATH_FILES[:max_files]
 
-    # --no-file-ids
-    if not config.getoption("no-file-ids"):
+    # --file-ids
+    if config.getoption("file-ids"):
         FILEPATH_IDS = [str(filepath) for filepath in FILEPATH_FILES]
 
 
@@ -112,6 +127,7 @@ CURRENT_TIME = int(time.time() * 1000)
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_protocol(item, nextitem):
     if not PROFILING_NBT:
+        yield
         return
 
     lp = line_profiler.LineProfiler()
@@ -119,8 +135,22 @@ def pytest_runtest_protocol(item, nextitem):
     lp.enable_by_count()
     yield
     lp.disable_by_count()
+
+    # Profiling results will always have an entry in the Private/ directory.
+    # Item name hashing and saving to the public directory can be enabled with
+    # --public-profiling.
     profile_name = re.sub(r"[^-a-zA-Z0-9_\.]", "_", item.name)
-    lp.dump_stats(f"nbt_prof/{profile_name}.{CURRENT_TIME}.prof")
+    lp.dump_stats(PROFILING_PRIVATE_DIR / f"{profile_name}.prof")
+    with open(PROFILING_PRIVATE_DIR / f"{profile_name}.stats", 'w') as f:
+        lp.print_stats(stream=f)
+    if PUBLIC_PROFILING:
+        profile_name_hashed = hashlib.blake2b(
+            profile_name.encode('utf-8'),
+            digest_size=3
+        ).hexdigest()
+        lp.dump_stats(PROFILING_PUBLIC_DIR / f"{profile_name_hashed}.prof")
+        with open(PROFILING_PUBLIC_DIR / f"{profile_name_hashed}.stats", 'w') as f:
+            lp.print_stats(stream=f)
 
 
 def pytest_generate_tests(metafunc):
