@@ -173,27 +173,17 @@ class Tag:
     def deserialize_name(self, data: memoryview):
         """ Sets the name attribute
         """
-        # The size of the name is give by two Big Endian bytes, offset one from
-        # the first byte (the tag id).
-        string_size_width = 2  # length defined by a short
+        offset = self._size
+
         string_size = int.from_bytes(
-            data[self._size:self._size + string_size_width],
+            data[offset:offset + 2],
             byteorder='big',
             signed=False
         )
+        offset += 2
 
-        # NOTE: I've yet to define whether name or payload for TAG_String
-        # with a value of None has any semantic difference from emptry-string.
-        # As of writing this comment, a None-valued attribute just means the
-        # tag is "unnamed"; but we save the "named" attribute so that there's
-        # no ambiguity.
-        if string_size == 0:
-            self.name = ""
-            self._size += 2
-            return
-
-        self.name = data[self._size:self._size + string_size].tobytes().decode('utf-8')
-        self._size += 2 + string_size
+        self.name = data[offset:offset + string_size].tobytes().decode('utf-8')
+        self._size = offset + string_size
 
     def deserialize_payload(self, data: memoryview):
         """ Sets the payload attribute
