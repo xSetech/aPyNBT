@@ -37,13 +37,12 @@ def test_tag_named_attr():
     """ Confirm the documented behavior of the "named" parameter
     """
     # Unnamed tags don't have their None-valued "name" attribute automatically
-    # converted to empty-string. The default value is left in-tact (Tag.name
-    # being the default value).
+    # converted to empty-string. The default value is None.
     unnamed_tag1 = nbt.TAG_Byte(payload=0)
     unnamed_tag2 = nbt.TAG_Byte(payload=0, named=False)
-    assert unnamed_tag1.name == nbt.Tag.name and unnamed_tag2.name == nbt.Tag.name
+    assert unnamed_tag1.name is None and unnamed_tag2.name is None
     assert unnamed_tag1.serialize() == unnamed_tag2.serialize()
-    assert unnamed_tag1.name == nbt.Tag.name and unnamed_tag2.name == nbt.Tag.name
+    assert unnamed_tag1.name is None and unnamed_tag2.name is None
 
     # Named tags behave differently. The name attribute is converted to
     # empty-string automatically in the constructor and during serialization.

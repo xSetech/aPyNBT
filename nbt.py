@@ -40,27 +40,20 @@ from typing import Any, Dict, List, Tuple
 class Tag:
     """ Base class of all tags """
 
+    # Memory and performance optimization: Declare the mutable instance
+    # attributes ahead-of-time.
+    __slots__ = (
+        "name", "payload",
+        "_size", "_tagged", "_named"
+    )
+
     # "tag id", an immutable attribute of a specific subclass of Tag
     tid: int = None
-
-    # "name" and "payload" are mutable instance attributes collected either by
-    # deserialization of nbt data or by having them passed as arguments to the
-    # constructor.
-    name: str = None
-    payload: Any = None
 
     # Is the tag's payload an equivallent basic Python type (int, str, etc)?
     # This is a class attribute that permits significant performance gains
     # during serialization or deserialization.
     _is_primitive: bool = False
-
-    # The number of bytes processed during deserialization. If the value is
-    # zero, no deserialization has occured.
-    _size: int = 0
-
-    # Indicators that the tag bytes for its tag id and/or name?
-    _tagged: bool = True
-    _named: bool = True
 
     def __init__(self, nbt_data: memoryview = None, name: str = None, payload: Any = None, named: bool = None, tagged: bool = True):
         """ Instantiation for all decendent tag types
@@ -69,7 +62,7 @@ class Tag:
         name, and payload). Additional attributes are set for programmer
         convinience. The "name" and "payload" attributes are populated based on
         data in the byte array "nbt_data".
-        
+
         Args:
 
             tagID::int
@@ -110,11 +103,28 @@ class Tag:
         can think of it as a tag without bytes in nbt_data corresponding to the
         name or payload attributes.
         """
-        if not tagged:
-            self._tagged: bool = False
+        # "name" and "payload" are mutable instance attributes collected either
+        # by deserialization of nbt data or by having them passed as arguments
+        # to the constructor.
+        self.name: str = None
+        self.payload: Any = None
 
+        # The number of bytes processed during deserialization. If the value is
+        # zero, no deserialization has occured.
+        self._size: int = 0
+
+        # Indicates the tag has bytes for its tag id.
+        self._tagged: bool = tagged
+
+        # Indicates the tag has bytes for its name.
+        #
+        # This constructor is optimized for deserialization. The case of
+        # nbt_data being None is not the common case. As a result, note the same
+        # conditional is resolved (`named is None`) lower down.
         if named is not None:
             self._named: bool = named
+        else:
+            self._named: bool = True
 
         if nbt_data is not None:
             self.deserialize(nbt_data)
@@ -125,10 +135,8 @@ class Tag:
             if named is None and name is None:
                 self._named = False
                 return
-
             if named is False:
                 return
-
             if name:
                 self.name = name
             else:
@@ -159,7 +167,11 @@ class Tag:
             _unpack=unpack,
             _memview_to_bytes=memoryview.tobytes,
             _bytes_decode=bytes.decode) -> int:
-        """ Sets the name attribute
+        """ Sets the `name` attribute
+
+        The constructor is a mess because this method is called *very*
+            frequently and must be optimized to avoid attribute lookups for
+            `unpack`, `memoryview`, and `bytes`.
         """
         string_size = _unpack("!H", data[:2])[0]
         width = 2 + string_size
@@ -167,7 +179,7 @@ class Tag:
         return width
 
     def deserialize_payload(self, data: memoryview) -> int:
-        """ Sets the payload attribute
+        """ Sets the `payload` attribute
 
         This is specific to each tag and implemented in the respective tag class.
         """
@@ -185,7 +197,7 @@ class Tag:
 
     def serialize(self) -> bytes:
         """ Returns this tag's representation in bytes
-        """        
+        """
         # Special-case: TAG_End is defined as 0x00
         if isinstance(self, TAG_End):
             return b"\x00"
@@ -261,7 +273,9 @@ class Tag:
 class TAG_End(Tag):
     """ Special-case; it's basically a NULL-terminator """
 
-    tid = 0x00
+    __slots__ = tuple()
+
+    tid: int = 0x00
 
     _size: int = 1
 
@@ -273,7 +287,8 @@ class TagInt(Tag):
     """ Parent-class for tags with an integer-typed payload
     """
 
-    payload: int = None
+    __slots__ = tuple()
+
     width: int = None
 
     _is_primitive: bool = True
@@ -305,33 +320,42 @@ class TagInt(Tag):
 
 class TAG_Byte(TagInt):
 
-    tid = 0x01
-    width = 1
+    __slots__ = tuple()
+
+    tid: int = 0x01
+    width: int = 1
 
 
 class TAG_Short(TagInt):
 
-    tid = 0x02
-    width = 2
+    __slots__ = tuple()
+
+    tid: int = 0x02
+    width: int = 2
 
 
 class TAG_Int(TagInt):
 
-    tid = 0x03
-    width = 4
+    __slots__ = tuple()
+
+    tid: int = 0x03
+    width: int = 4
 
 
 class TAG_Long(TagInt):
 
-    tid = 0x04
-    width = 8
+    __slots__ = tuple()
+
+    tid: int = 0x04
+    width: int = 8
 
 
 class TagFloat(Tag):
     """ Parent class for floating point tag types
     """
 
-    payload: bytes = None  # TODO TAG_Float is a float
+    __slots__ = tuple()
+
     width: int = None
 
     _is_primitive: bool = False  # TODO TAG_Float is a float
@@ -352,14 +376,18 @@ class TagFloat(Tag):
 
 class TAG_Float(TagFloat):
 
-    tid = 0x05
-    width = 4
+    __slots__ = tuple()
+
+    tid: int = 0x05
+    width: int = 4
 
 
 class TAG_Double(TagFloat):
 
-    tid = 0x06
-    width = 8
+    __slots__ = tuple()
+
+    tid: int = 0x06
+    width: int = 8
 
 
 class TagIterable(Tag):
@@ -378,6 +406,8 @@ class TagIterable(Tag):
         function to the "array_size_width" attribute.
     """
 
+    __slots__ = tuple()
+
     # Number of bytes that represent the number of elements in the iterable (if
     # a length field is provided by the tag at all, e.g. TAG_Compound uses
     # TAG_End to denote the end of its array).
@@ -386,9 +416,10 @@ class TagIterable(Tag):
 
 class TAG_Byte_Array(TagIterable):
 
-    tid = 0x07
+    __slots__ = tuple()
+
+    tid: int = 0x07
     array_size_width = 4  # int
-    payload: List[bytes] = None
 
     def deserialize_payload(self, data: memoryview, _unpack=unpack) -> int:
         array_size = _unpack("!I", data[:4])[0]
@@ -411,8 +442,9 @@ class TAG_Byte_Array(TagIterable):
 
 class TAG_String(Tag):
 
-    tid = 0x08
-    payload: str = None
+    __slots__ = tuple()
+
+    tid: int = 0x08
     string_size_width: int = 2  # short
 
     _is_primitive: bool = True
@@ -453,10 +485,10 @@ class TAG_String(Tag):
 
 class TAG_List(TagIterable):
 
-    tid = 0x09
-    array_size_width = 4  # int
-    tagID: int = None  # "A list with tags having a tid of tagID"
-    payload: List[Tag] = None
+    __slots__ = ("tagID",)
+
+    tid: int = 0x09
+    array_size_width: int = 4  # int
 
     def __init__(self, *args, tagID: int = None, **kwargs,):
         """
@@ -468,7 +500,7 @@ class TAG_List(TagIterable):
         self.serialize() will fail with an AssertionError if this attribute is
             not set and the payload is an empty list!
         """
-        self.tagID = tagID
+        self.tagID: int = tagID
         super(TAG_List, self).__init__(*args, **kwargs)
 
     def deserialize_payload(self, data: memoryview, _unpack=unpack) -> int:
@@ -555,8 +587,9 @@ class TAG_List(TagIterable):
 
 class TAG_Compound(TagIterable):
 
-    tid = 0x0a
-    payload: List[Tag] = None
+    __slots__ = tuple()
+
+    tid: int = 0x0a
 
     def deserialize_payload(self, data: memoryview) -> int:
         self.payload = []
@@ -589,9 +622,10 @@ class TagIterableNumeric(TagIterable):
     """ Parent-class for lists of numerics
     """
 
-    array_size_width = 4  # int
-    payload: List[int] = None
-    width = None
+    __slots__ = tuple()
+
+    array_size_width: int = 4  # int
+    width: int = None
 
     def deserialize_payload(self, data: memoryview, _unpack=unpack) -> int:
         sformat, width = self.sformat, self.width
@@ -623,15 +657,19 @@ class TagIterableNumeric(TagIterable):
 
 class TAG_Int_Array(TagIterableNumeric):
 
-    tid = 0x0b
-    width = 4  # int
+    __slots__ = tuple()
+
+    tid: int = 0x0b
+    width: int = 4  # int
     sformat = "!i"
 
 
 class TAG_Long_Array(TagIterableNumeric):
 
-    tid = 0x0c
-    width = 8  # long
+    __slots__ = tuple()
+
+    tid: int = 0x0c
+    width: int = 8  # long
     sformat = "!l"
 
 
