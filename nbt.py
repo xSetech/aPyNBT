@@ -54,6 +54,14 @@ class Tag:
     # during serialization or deserialization.
     _is_primitive: bool = False
 
+    # The number of bytes processed during deserialization. If the value is
+    # zero, no deserialization has occured.
+    _size: int = 0
+
+    # Indicators that the tag bytes for its tag id and/or name?
+    _tagged: bool = True
+    _named: bool = True
+
     def __init__(self, nbt_data: memoryview = None, name: str = None, payload: Any = None, named: bool = None, tagged: bool = True):
         """ Instantiation for all decendent tag types
 
@@ -102,46 +110,29 @@ class Tag:
         can think of it as a tag without bytes in nbt_data corresponding to the
         name or payload attributes.
         """
-        self.tagged: bool = tagged
+        if not tagged:
+            self._tagged: bool = False
 
-        # If named is explicitly given, we'll use the passed value. Otherwise,
-        # the value is inferred from other arguments.
         if named is not None:
-            self.named: bool = named
-        else:
-            if nbt_data is not None:
-                self.named = True
-            else:
-                if name is None:
-                    self.named = False
-                else:
-                    self.named = True
+            self._named: bool = named
 
-        # self._size is the number of bytes processed during deserialization.
-        # If the value is zero, no deserialization has occured.
-        self._size: int = 0
-
-        # Special-case; TAG_End are basically a tag id without a name or payload
-        if isinstance(self, TAG_End):
-            self._size = 1  # 1 byte processed (tag id)
-            return
-
-        # If there's nothing to deserialize, then the name and payload
-        # attributes can't be collected.
         if nbt_data is not None:
             self.deserialize(nbt_data)
-
-        # Regardless of whether deserialization was skipped, if either "name"
-        # or "payload" are passed as parameters, use them.
-        if name is not None:
-            self.name = name
-        if payload is not None:
+        else:
             self.payload = payload
 
-        # Named tags with None-valued names are the same as empty-string valued
-        # named tags.
-        if self.named and self.name is None:
-            self.name = ""
+            # Inferred false _named attribute.
+            if named is None and name is None:
+                self._named = False
+                return
+
+            if named is False:
+                return
+
+            if name:
+                self.name = name
+            else:
+                self.name = ""
 
     def deserialize(self, data: memoryview):
         """
@@ -151,11 +142,11 @@ class Tag:
         offset = 0
 
         # Tags in lists don't have a tag id byte.
-        if self.tagged:
+        if self._tagged:
             offset = 1  # 1 byte processed (tag id)
 
         # Tags in lists don't have a name.
-        if self.named:
+        if self._named:
             offset += self.deserialize_name(data[offset:])
         else:
             self.name = ""
@@ -203,8 +194,8 @@ class Tag:
         assert self.tid is not None
 
         # The tag needs to at least have been initialized!
-        assert self.named is not None
-        assert self.tagged is not None
+        assert self._named is not None
+        assert self._tagged is not None
 
         data = b''
         data += self.serialize_tid()
@@ -215,7 +206,7 @@ class Tag:
     def serialize_tid(self) -> bytes:
         """ Convert the tag's id into its representation in bytes
         """
-        if not self.tagged:
+        if not self._tagged:
             return b''
         return self.tid.to_bytes(1, byteorder='big', signed=False)
 
@@ -226,7 +217,7 @@ class Tag:
             representing the length of the string, and then second is the
             actual bytes of the string (utf-8 encoded).
         """
-        if not self.named:
+        if not self._named:
             return b''
 
         # Named tags with None-valued names are the same as empty-string valued
@@ -264,13 +255,18 @@ class Tag:
     def __repr__(self) -> str:
         """ See https://docs.python.org/3.6/reference/datamodel.html#object.__repr__
         """
-        return f"<{self.__class__} size={self._size} name='{self.name}' named={self.named} tagged={self.tagged}>"
+        return f"<{self.__class__} size={self._size} name='{self.name}' named={self._named} tagged={self._tagged}>"
 
 
 class TAG_End(Tag):
-    """ Special-case; see the __init__ of Tag """
+    """ Special-case; it's basically a NULL-terminator """
 
     tid = 0x00
+
+    _size: int = 1
+
+    def __init__(self, *args, **kwargs):
+        return
 
 
 class TagInt(Tag):
@@ -553,8 +549,8 @@ class TAG_List(TagIterable):
         for value in self.payload:
             if not TAG_TYPES[self.tagID]._is_primitive:
                 assert value.__class__ in TAGS
-                assert not value.named
-                assert not value.tagged
+                assert not value._named
+                assert not value._tagged
 
 
 class TAG_Compound(TagIterable):

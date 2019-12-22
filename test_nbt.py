@@ -62,29 +62,20 @@ def test_tag_named_attr():
     # Double-check that a non-empty non-None value for a name stays that way...
     # and that the named attribute is correctly inferred.
     named_tag_with_name = nbt.TAG_Byte(payload=0, name="a tag name test")
-    assert named_tag_with_name.named
+    assert named_tag_with_name._named
     assert named_tag_with_name.name == "a tag name test"
     named_tag_with_name.serialize()
     assert named_tag_with_name.name == "a tag name test"
 
     # More checks that that the named attribute is correctly inferred.
     tag_from_deserialization1 = nbt.TAG_Byte(nbt_data=memoryview(named_tag_with_name.serialize()))
-    assert tag_from_deserialization1.named == True
+    assert tag_from_deserialization1._named == True
     assert tag_from_deserialization1.payload == 0
     assert tag_from_deserialization1.name == "a tag name test"
     assert tag_from_deserialization1.serialize() == named_tag_with_name.serialize()
 
     tag_from_deserialization2 = nbt.TAG_Byte(nbt_data=memoryview(unnamed_tag1.serialize()), named=False)
-    assert tag_from_deserialization2.named == False
-
-    # The name attribute should overload any result from deserialization.
-    tag_from_deserialization3 = nbt.TAG_Byte(nbt_data=memoryview(named_tag_with_name.serialize()), name="overloaded")
-    assert tag_from_deserialization3.named
-    assert tag_from_deserialization3.name == "overloaded"
-
-    # Just a note, there's currently no way to give an unnamed tag a name just
-    # via the constructor. I can't imagine a usecase for that, but if there is
-    # it can be added :)
+    assert tag_from_deserialization2._named == False
 
 
 def test_tag_end():
@@ -241,13 +232,13 @@ def test_tag_list_with_tags():
     tag.validate()
 
     # A tag that is named makes the payload invalid.
-    tag.payload[0].named = True
+    tag.payload[0]._named = True
     with pytest.raises(AssertionError):
         tag.validate()
 
     # A tag that is tagged makes the payload invalid.
-    tag.payload[0].named = False
-    tag.payload[0].tagged = True
+    tag.payload[0]._named = False
+    tag.payload[0]._tagged = True
     with pytest.raises(AssertionError):
         tag.validate()
 
