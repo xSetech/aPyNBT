@@ -280,7 +280,9 @@ class TAG_End(Tag):
     _size: int = 1
 
     def __init__(self, *args, **kwargs):
-        return
+        self.name = None
+        self._named = False
+        self._tagged = True
 
 
 class TagInt(Tag):

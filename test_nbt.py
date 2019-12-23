@@ -87,6 +87,45 @@ def test_tag_end():
 
 
 @pytest.mark.parametrize(
+    "tag_instance",
+    [
+        nbt.TAG_End(payload=None, name="tag repr test"),
+        nbt.TAG_Byte(payload=1, name="tag repr test"),
+        nbt.TAG_Short(payload=1, name="tag repr test"),
+        nbt.TAG_Int(payload=1, name="tag repr test"),
+        nbt.TAG_Long(payload=1, name="tag repr test"),
+        nbt.TAG_Float(payload=1.0, name="tag repr test"),
+        nbt.TAG_Double(payload=1.0, name="tag repr test"),
+        nbt.TAG_Byte_Array(payload=[b'\x00', b'\x01'], name="tag repr test"),
+        nbt.TAG_String(payload="string repr test", name="tag repr test"),
+        nbt.TAG_List(payload=["tag list repr test"], name="tag repr test", tagID=nbt.TAG_String.tid),
+        nbt.TAG_Compound(payload=[nbt.TAG_End()], name="tag repr test"),
+        nbt.TAG_Int_Array(payload=[1, 2, 3], name="tag repr test"),
+        nbt.TAG_Long_Array(payload=[1, 2, 3], name="tag repr test"),
+    ],
+    ids=[
+        "nbt.TAG_End",
+        "nbt.TAG_Byte",
+        "nbt.TAG_Short",
+        "nbt.TAG_Int",
+        "nbt.TAG_Long",
+        "nbt.TAG_Float",
+        "nbt.TAG_Double",
+        "nbt.TAG_Byte_Array",
+        "nbt.TAG_String",
+        "nbt.TAG_List",
+        "nbt.TAG_Compound",
+        "nbt.TAG_Int_Array",
+        "nbt.TAG_Long_Array",
+    ]
+)
+def test_repr(tag_instance):
+    """ Test each Tag's __repr__
+    """
+    str(tag_instance)
+
+
+@pytest.mark.parametrize(
     "tag_class",
     [tag_class for tag_class in nbt.TAGS if tag_class in nbt.TagInt.__subclasses__()]
 )
