@@ -13,22 +13,22 @@ import pytest
 import nbt
 
 
-def test_deserialize_all_test_data(filepath: Path):
-    nbt.deserialize_file(filepath)
+def test_deserialize_all_test_data(nbt_filepath: Path):
+    nbt.deserialize_file(nbt_filepath)
 
 
-def test_reserialize_all_test_data(filepath: Path):
-    tree = nbt.deserialize_file(filepath)
+def test_reserialize_all_test_data(nbt_filepath: Path):
+    tree = nbt.deserialize_file(nbt_filepath)
     data = nbt.serialize(tree)
 
 
-def test_reserialize_reference_compared(filepath: Path):
+def test_reserialize_reference_compared(nbt_filepath: Path):
     """
     Same as test_reserialize_reference(), but compare the original bytes to the
     output of the serializer. There should be no difference.
     """
-    orig = nbt.extract_serialized_bytes(filepath)
-    tree = nbt.deserialize_file(filepath)
+    orig = nbt.extract_serialized_bytes(nbt_filepath)
+    tree = nbt.deserialize_file(nbt_filepath)
     data = nbt.serialize(tree)
     assert data == orig
 

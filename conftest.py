@@ -52,8 +52,8 @@ def _find_all_test_data(root: Path = DEFAULT_TEST_DATA_PATH) -> List[Path]:
 
 
 # Initialized in pytest_configure()
-FILEPATH_FILES: List[Path] = None
-FILEPATH_IDS: List[str] = None
+NBT_FILEPATH_FILES: List[Path] = None
+NBT_FILEPATH_IDS: List[str] = None
 
 
 def pytest_addoption(parser):
@@ -72,8 +72,8 @@ PUBLIC_PROFILING = False
 
 
 def pytest_configure(config):
-    global FILEPATH_FILES, FILEPATH_IDS, PERTEST_PROFILING, PROFILING_NBT, PUBLIC_PROFILING
-    FILEPATH_FILES = []
+    global NBT_FILEPATH_FILES, NBT_FILEPATH_IDS, PERTEST_PROFILING, PROFILING_NBT, PUBLIC_PROFILING
+    NBT_FILEPATH_FILES = []
 
     # --nbt-profiling
     PROFILING_NBT = config.getoption("nbt-profiling")
@@ -101,14 +101,14 @@ def pytest_configure(config):
     if max_files == 0:
         return
 
-    FILEPATH_FILES = _find_all_test_data()
+    NBT_FILEPATH_FILES = _find_all_test_data()
 
     # --repeat-files
     if config.getoption("repeat-files") > 0:
-        filepath_files = []
+        nbt_filepath_files = []
         for _ in range(config.getoption("repeat-files")):
-            filepath_files.extend(FILEPATH_FILES)
-        FILEPATH_FILES = filepath_files
+            nbt_filepath_files.extend(NBT_FILEPATH_FILES)
+        NBT_FILEPATH_FILES = nbt_filepath_files
 
     # --shuffle-files
     if config.getoption("shuffle-files"):
@@ -117,14 +117,14 @@ def pytest_configure(config):
         # which get optimized easily by modern* CPUs.
         #
         # * Modern meaning most x86_64; definitely not all RISC variants...
-        random.shuffle(FILEPATH_FILES)
+        random.shuffle(NBT_FILEPATH_FILES)
 
     if max_files > 0:
-        FILEPATH_FILES = FILEPATH_FILES[:max_files]
+        NBT_FILEPATH_FILES = NBT_FILEPATH_FILES[:max_files]
 
     # --file-ids
     if config.getoption("file-ids"):
-        FILEPATH_IDS = [str(filepath) for filepath in FILEPATH_FILES]
+        NBT_FILEPATH_IDS = [str(nbt_filepath) for nbt_filepath in NBT_FILEPATH_FILES]
 
 
 CURRENT_TIME = int(time.time() * 1000)
@@ -211,6 +211,6 @@ def pytest_runtest_protocol(item, nextitem):
 
 
 def pytest_generate_tests(metafunc):
-    if "filepath" in metafunc.fixturenames:
-        metafunc.parametrize("filepath", FILEPATH_FILES, ids=FILEPATH_IDS)
+    if "nbt_filepath" in metafunc.fixturenames:
+        metafunc.parametrize("nbt_filepath", NBT_FILEPATH_FILES, ids=NBT_FILEPATH_IDS)
 
