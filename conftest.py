@@ -21,12 +21,12 @@ import nbt
 DEFAULT_TEST_DATA_PATH = Path("test_data/")
 
 # Consider files with these extensions to contain NBT data (compressed or uncompressed):
-NBT_FILE_SUFFIXES: Tuple[str] = (
-    ".dat",
-)
+NBT_FILE_SUFFIXES: Tuple[str] = (".dat",)
+ANVIL_FILE_SUFFIXES: Tuple[str] = (".mca",)
+REGION_FILE_SUFFIXES: Tuple[str] = (".mcr",)
 
 # These files will be ignored:
-DEFINTELY_NOT_NBT_BLACKLIST: Tuple[str] = (
+TEST_FILE_BLACKLIST: Tuple[str] = (
     "uid.dat",  # Undocumented. Maybe related to Realms?
                 # https://www.minecraftforum.net/forums/minecraft-java-edition/suggestions/79149-world-uid-for-multi-world-servers
 )
@@ -35,25 +35,29 @@ PROFILING_PUBLIC_DIR = Path("perf/Public/")
 PROFILING_PRIVATE_DIR = Path("perf/Private/")
 
 
-def _find_all_test_data(root: Path = DEFAULT_TEST_DATA_PATH) -> List[Path]:
-    """ Returns all testable NBT files
+def _find_all_test_data(root: Path = DEFAULT_TEST_DATA_PATH, exts: Tuple[str] = None) -> List[Path]:
+    """ Search and return testable files based on suffix
     """
-    nbt_files = []
+    files = []
     for f in root.iterdir():
         if f.is_dir():
-            nbt_files.extend(_find_all_test_data(f))
+            files.extend(_find_all_test_data(f, exts=exts))
             continue
         if f.is_file():
-            if any([f.name.endswith(suffix) for suffix in NBT_FILE_SUFFIXES]):
-                if f.name not in DEFINTELY_NOT_NBT_BLACKLIST:
-                    nbt_files.append(f)
+            if any([f.name.endswith(suffix) for suffix in exts]):
+                if f.name not in TEST_FILE_BLACKLIST:
+                    files.append(f)
                     continue
-    return nbt_files
+    return files
 
 
 # Initialized in pytest_configure()
 NBT_FILEPATH_FILES: List[Path] = None
 NBT_FILEPATH_IDS: List[str] = None
+ANVIL_FILEPATH_FILES: List[Path] = None
+ANVIL_FILEPATH_IDS: List[str] = None
+REGION_FILEPATH_FILES: List[Path] = None
+REGION_FILEPATH_IDS: List[str] = None
 
 
 def pytest_addoption(parser):
@@ -72,8 +76,15 @@ PUBLIC_PROFILING = False
 
 
 def pytest_configure(config):
-    global NBT_FILEPATH_FILES, NBT_FILEPATH_IDS, PERTEST_PROFILING, PROFILING_NBT, PUBLIC_PROFILING
+    global \
+    NBT_FILEPATH_FILES, NBT_FILEPATH_IDS, \
+    ANVIL_FILEPATH_FILES, ANVIL_FILEPATH_IDS, \
+    REGION_FILEPATH_FILES, REGION_FILEPATH_IDS, \
+    PERTEST_PROFILING, PROFILING_NBT, PUBLIC_PROFILING
+
     NBT_FILEPATH_FILES = []
+    ANVIL_FILEPATH_FILES = []
+    REGION_FILEPATH_FILES = []
 
     # --nbt-profiling
     PROFILING_NBT = config.getoption("nbt-profiling")
@@ -101,7 +112,9 @@ def pytest_configure(config):
     if max_files == 0:
         return
 
-    NBT_FILEPATH_FILES = _find_all_test_data()
+    NBT_FILEPATH_FILES = _find_all_test_data(exts=NBT_FILE_SUFFIXES)
+    ANVIL_FILEPATH_FILES = _find_all_test_data(exts=ANVIL_FILE_SUFFIXES)
+    REGION_FILEPATH_FILES = _find_all_test_data(exts=REGION_FILE_SUFFIXES)
 
     # --repeat-files
     if config.getoption("repeat-files") > 0:
@@ -125,6 +138,8 @@ def pytest_configure(config):
     # --file-ids
     if config.getoption("file-ids"):
         NBT_FILEPATH_IDS = [str(nbt_filepath) for nbt_filepath in NBT_FILEPATH_FILES]
+        ANVIL_FILEPATH_IDS = [str(anvil_filepath) for anvil_filepath in ANVIL_FILEPATH_FILES]
+        REGION_FILEPATH_IDS = [str(region_filepath) for region_filepath in REGION_FILEPATH_FILES]
 
 
 CURRENT_TIME = int(time.time() * 1000)
@@ -213,4 +228,7 @@ def pytest_runtest_protocol(item, nextitem):
 def pytest_generate_tests(metafunc):
     if "nbt_filepath" in metafunc.fixturenames:
         metafunc.parametrize("nbt_filepath", NBT_FILEPATH_FILES, ids=NBT_FILEPATH_IDS)
-
+    if "region_filepath" in metafunc.fixturenames:
+        metafunc.parametrize("region_filepath", REGION_FILEPATH_FILES, ids=REGION_FILEPATH_IDS)
+    if "anvil_filepath" in metafunc.fixturenames:
+        metafunc.parametrize("anvil_filepath", ANVIL_FILEPATH_FILES, ids=ANVIL_FILEPATH_IDS)
