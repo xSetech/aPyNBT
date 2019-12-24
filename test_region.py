@@ -2,6 +2,8 @@
 """ Tests for region.py
 """
 
+import os
+
 import pytest
 
 import region
@@ -32,6 +34,14 @@ def test_coords_from_filename(filename, coords):
     filename = filename.replace("mcr", "mca")
     coords_from_filename = region.coords_from_filename(filename)
     assert coords_from_filename == coords
+
+
+def test_coords_from_region_references(region_filepath):
+    region.coords_from_filename(os.path.basename(region_filepath))
+
+
+def test_coords_from_anvil_references(anvil_filepath):
+    region.coords_from_filename(os.path.basename(anvil_filepath))
 
 
 def test_region_deserialization(region_filepath):
