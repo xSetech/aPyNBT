@@ -7,11 +7,15 @@ https://minecraft.gamepedia.com/Anvil_file_format
 
 from collections import defaultdict
 import re
-from typing import List
+from typing import List, Tuple
 
 from chunk import Chunk
 
-re_coords_from_filename = re.compile(r"r\.([-0-9]+)\.([-0-9]+)\.mcr")
+re_coords_from_filename = re.compile(r"r\.([-0-9]+)\.([-0-9]+)\.mc[ar]")
+
+def coords_from_filename(filename: str, rgx=re_coords_from_filename) -> Tuple[int, int]:
+    x, z = rgx.findall(filename)[0]
+    return int(x), int(z)
 
 
 class Region:
@@ -39,9 +43,7 @@ class Region:
         self.chunks: Dict[int, Dict[int, Chunk]] = defaultdict(lambda: None)
 
         if basename is not None:
-            x, z = re_coords_from_filename.findall(basename)[0]
-            self.x: int = int(x)
-            self.z: int = int(z)
+            self.x, self.z = coords_from_filename(basename)
         else:
             self.x = x
             self.z = z
