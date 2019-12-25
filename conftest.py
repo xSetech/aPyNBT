@@ -94,13 +94,14 @@ def pytest_configure(config):
         except FileExistsError:
             pass
 
-    # --public-profiling
-    PUBLIC_PROFILING = config.getoption("public-profiling")
-    if PUBLIC_PROFILING:
+        # Public/ is used for the aggregate stats.
         try:
             PROFILING_PUBLIC_DIR.mkdir()
         except FileExistsError:
             pass
+
+    # --public-profiling
+    PUBLIC_PROFILING = config.getoption("public-profiling")
 
     # --pertest-profiling
     PERTEST_PROFILING = config.getoption("pertest-profiling")
