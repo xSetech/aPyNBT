@@ -33,7 +33,7 @@ Short summary:
 This was written and tested using Python 3.6
 """
 
-from struct import unpack
+from struct import iter_unpack, unpack
 from typing import Any, Dict, List, Tuple
 
 
@@ -624,14 +624,12 @@ class TagIterableNumeric(TagIterable):
     array_size_width: int = 4  # int
     width: int = None
 
-    def deserialize_payload(self, data: memoryview, _unpack=unpack) -> int:
+    def deserialize_payload(self, data: memoryview, _unpack=unpack, _iter_unpack=iter_unpack) -> int:
         sformat, width = self.sformat, self.width
         array_size = _unpack("!I", data[:4])[0]
-        self.payload = [
-            _unpack(sformat, data[4 + (width * idx):4 + (width * (idx + 1))])[0]
-            for idx in range(array_size)
-        ]
-        return 4 + (width * array_size)
+        last_index = width * array_size
+        self.payload = list(_iter_unpack(sformat, data[4:4 + last_index]))
+        return 4 + last_index
 
     def serialize_payload(self) -> bytes:
         data = b''
