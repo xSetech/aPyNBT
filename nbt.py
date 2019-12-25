@@ -424,22 +424,17 @@ class TAG_Byte_Array(TagIterable):
     array_size_width = 4  # int
 
     def deserialize_payload(self, data: memoryview, _unpack=unpack) -> int:
-        array_size = _unpack("!I", data[:4])[0]
-        self.payload = [data[4 + idx:5 + idx].tobytes() for idx in range(0, array_size)]
+        array_size: int = _unpack("!I", data[:4])[0]
+        self.payload: bytearray = bytearray(data[4:4 + array_size])
         return 4 + array_size
 
     def serialize_payload(self) -> bytes:
-        data = len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
-        for b in self.payload:
-            data += b
+        data: bytes = len(self.payload).to_bytes(self.array_size_width, byteorder='big', signed=False)
+        data += bytes(self.payload)
         return data
 
     def validate(self):
-        assert isinstance(self.payload, list)
-        if self.payload:
-            for value in self.payload:
-                assert isinstance(value, bytes)
-                assert len(value) == 1
+        assert isinstance(self.payload, bytearray)
 
 
 class TAG_String(Tag):

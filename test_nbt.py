@@ -192,28 +192,25 @@ def test_tag_double():
 
 
 def test_tag_byte_array_payload_validation():
-    # Initialize a tag with an empty list and it's valid
-    tag = nbt.TAG_Byte_Array(payload=[], tagged=False)
+    tag = nbt.TAG_Byte_Array(payload=bytearray(), tagged=False)
     assert not tag.payload
     tag.validate()
 
-    # A non-empty list of bytes is valid
-    tag.payload.append(b'\x00')
+    # Assert a non-empty bytearray is valid
+    tag.payload.append(0)  # append int
+    tag.payload.extend(b'\x00')  # append byte
+    assert len(tag.payload) == 2
     tag.validate()
 
-    # The payload must be a list of bytes
+    # The payload must be a bytearray
     with pytest.raises(AssertionError):
         tag.payload = "abc"
         tag.validate()
-
-    # Each element of the list must be of type "bytes"
-    with pytest.raises(AssertionError):
-        tag.payload = [123]
-        tag.validate()
-
-    # Each element of the list must be one byte large
     with pytest.raises(AssertionError):
         tag.payload = [b'\xff\xff']
+        tag.validate()
+    with pytest.raises(AssertionError):
+        tag.payload = [123]
         tag.validate()
 
 
