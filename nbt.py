@@ -667,7 +667,7 @@ class TAG_Long_Array(TagIterableNumeric):
 
     tid: int = 0x0c
     width: int = 8  # long
-    sformat = "!l"
+    sformat = "!q"
 
 
 # Official "tags" as defined by the spec and Minecraft wiki.
