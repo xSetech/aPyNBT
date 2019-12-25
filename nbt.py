@@ -628,7 +628,7 @@ class TagIterableNumeric(TagIterable):
         sformat, width = self.sformat, self.width
         array_size = _unpack("!I", data[:4])[0]
         last_index = width * array_size
-        self.payload = list(_iter_unpack(sformat, data[4:4 + last_index]))
+        self.payload = [i[0] for i in _iter_unpack(sformat, data[4:4 + last_index])]
         return 4 + last_index
 
     def serialize_payload(self) -> bytes:
