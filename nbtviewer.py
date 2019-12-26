@@ -21,11 +21,20 @@ def depth_first_printout(screen, tree, level):
             tagtype = str(nbt.TAG_TYPES[branch.tid].__name__)
             if branch.name != None:
                 name = branch.name
+
+            # scalar values the payload's repr
             if not isinstance(branch, (nbt.TAG_End, nbt.TagIterable)):
                 value = str(branch.payload)
+
+            # iterables list the number of elements stored
             if isinstance(branch, nbt.TagIterable):
                 value = f"{len(branch.payload)} children"
+                if isinstance(branch, nbt.TAG_List):
+                    value += f" of type {nbt.TAG_TYPES[branch.tagID].__name__}"
+
+            # size
             size = str(branch._size)
+
             if isinstance(branch, nbt.TAG_End):
                 size = "1"
                 value = ""
@@ -41,9 +50,9 @@ def depth_first_printout(screen, tree, level):
         print(line)
 
         # Then print the branches of the branch:
-        if isinstance(branch, nbt.Tag) and isinstance(branch.payload, list):
-            depth_first_printout(screen, branch.payload, level + 1)
-            continue
+        if isinstance(branch, nbt.Tag) and hasattr(branch.payload, "__iter__"):
+            if not isinstance(branch.payload, (str,)):
+                depth_first_printout(screen, branch.payload, level + 1)
 
 
 def main():
