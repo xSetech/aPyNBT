@@ -429,6 +429,7 @@ class TAG_Byte_Array(TagIterable):
 
     tid: int = 0x07
     array_size_width = 4  # int
+    width: int = 1
 
     def deserialize_payload(self, data: memoryview, _unpack=unpack) -> int:
         array_size: int = _unpack("!I", data[:4])[0]
