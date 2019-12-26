@@ -281,6 +281,7 @@ class TAG_End(Tag):
 
     def __init__(self, *args, **kwargs):
         self.name = None
+        self.payload = None
         self._named = False
         self._tagged = True
 
