@@ -71,6 +71,11 @@ class Region:
         if region_data is not None:
             self.deserialize(region_data)
 
+    def __iter__(self):
+        for z in range(0, 32):
+            for x in range(0, 32):
+                yield self.chunks[x][z]
+
     def deserialize_chunk(self, region_data: memoryview, x: int, z: int):
         """ Deserialize a chunk at offset coordinate (x, z)
 
