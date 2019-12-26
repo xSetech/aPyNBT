@@ -9,6 +9,7 @@ from collections import defaultdict
 from datetime import datetime
 from enum import IntEnum
 import gzip
+import os
 import re
 from struct import unpack
 from typing import Dict, List, Optional, Tuple
@@ -128,4 +129,4 @@ class Region:
 def deserialize_file(filename: str) -> Region:
     with open(filename, 'rb') as f:
         region_data = f.read()
-    return Region(region_data=region_data)
+    return Region(region_data=region_data, basename=os.path.basename(filename))
