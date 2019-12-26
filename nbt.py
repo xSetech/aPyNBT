@@ -33,7 +33,7 @@ Short summary:
 This was written and tested using Python 3.6
 """
 
-from struct import iter_unpack, unpack
+from struct import iter_unpack, pack, unpack
 from typing import Any, Dict, List, Tuple
 
 
@@ -358,22 +358,26 @@ class TagFloat(Tag):
 
     __slots__ = tuple()
 
-    width: int = None
+    _is_primitive: bool = True
 
-    _is_primitive: bool = False  # TODO TAG_Float is a float
+    @classmethod
+    def deserialize_primitive(cls, data: memoryview) -> Tuple[float, int]:
+        value: float = unpack(cls.sformat, data[:cls.width])[0]
+        return value, cls.width
+
+    @classmethod
+    def serialize_primitive(cls, value: float) -> bytes:
+        return pack(cls.sformat, value)
 
     def deserialize_payload(self, data: memoryview) -> int:
-        # TODO TAG_Float is a float
-        width = self.width
-        self.payload = data[:width].tobytes()
+        self.payload, width = self.deserialize_primitive(data)
         return width
 
     def serialize_payload(self) -> bytes:
-        # TODO TAG_Float is a float
-        return self.payload
+        return self.serialize_primitive(self.payload)
 
     def validate(self):
-        pass  # TODO
+        assert isinstance(self.payload, float)
 
 
 class TAG_Float(TagFloat):
@@ -382,6 +386,7 @@ class TAG_Float(TagFloat):
 
     tid: int = 0x05
     width: int = 4
+    sformat: str = "!f"
 
 
 class TAG_Double(TagFloat):
@@ -390,6 +395,7 @@ class TAG_Double(TagFloat):
 
     tid: int = 0x06
     width: int = 8
+    sformat: str = "!d"
 
 
 class TagIterable(Tag):
