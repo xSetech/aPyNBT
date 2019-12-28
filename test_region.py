@@ -44,12 +44,29 @@ def test_coords_from_anvil_references(anvil_filepath):
     region.coords_from_filename(os.path.basename(anvil_filepath))
 
 
+@pytest.mark.skip("only used for profiling")
 def test_region_deserialization(region_filepath):
     region.deserialize_file(region_filepath)
 
 
+def test_region_reserialization(region_filepath):
+    orig_region = region.deserialize_file(region_filepath)
+    new_bytes = orig_region.serialize()
+    new_region = region.Region(region_data=new_bytes, x=orig_region.x, z=orig_region.z)
+    assert len(new_bytes) >= 8 * 1024  # 8KiB header, at least
+    assert len(list(new_region)) == len(list(orig_region))  # number of 'chunks' are equal
+
+
+@pytest.mark.skip("only used for profiling")
 def test_anvil_deserialization(anvil_filepath):
     """ Effectively the same as test_region_deserialization()
     """
     region.deserialize_file(anvil_filepath)
 
+
+def test_anvil_reserialization(anvil_filepath):
+    orig_region = region.deserialize_file(anvil_filepath)
+    new_bytes = orig_region.serialize()
+    new_region = region.Region(region_data=new_bytes, x=orig_region.x, z=orig_region.z)
+    assert len(new_bytes) >= 8 * 1024  # 8KiB header, at least
+    assert len(list(new_region)) == len(list(orig_region))  # number of 'chunks' are equal
