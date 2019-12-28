@@ -52,7 +52,7 @@ class Region:
             z::int
                 The optional region coordinates.
         """
-        # chunks[x][z] -> Chunk or None
+        # chunks[z][x] -> Chunk or None
         #
         # The coordinates here are the 2-d chunk offset from the top-left of the
         # region. In other words, the chunk's actual coordinates don't matter
@@ -74,7 +74,7 @@ class Region:
     def __iter__(self):
         for z in range(0, 32):
             for x in range(0, 32):
-                yield self.chunks[x][z]
+                yield self.chunks[z][x]
 
     def deserialize_chunk(self, region_data: memoryview, x: int, z: int):
         """ Deserialize a chunk at offset coordinate (x, z)
@@ -92,6 +92,8 @@ class Region:
         offset_bytes = region_data[metadata_offset:metadata_offset + 3]
         offset = int.from_bytes(offset_bytes, byteorder='big', signed=False)
         sectors = region_data[metadata_offset + 3:metadata_offset + 4][0]
+        self._offsets[z][x] = offset
+        self._sectors[z][x] = sectors
 
         if offset == 0 and sectors == 0:
             return  # ungenerated chunk
@@ -118,9 +120,9 @@ class Region:
         elif chunk_compression == Compression.ZLIB:
             chunk_data = memoryview(zlib.decompress(chunk_data))
 
-        self.chunks[x][z] = nbt.deserialize(chunk_data)
-        self.timestamps[x][z] = chunk_last_update
-        self.compression[x][z] = chunk_compression
+        self.chunks[z][x] = nbt.deserialize(chunk_data)
+        self.timestamps[z][x] = chunk_last_update
+        self.compression[z][x] = chunk_compression
 
     def deserialize(self, region_data: memoryview):
         """ Find and deserialize all chunks stored in the region
