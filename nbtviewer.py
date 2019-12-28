@@ -68,7 +68,7 @@ def depth_first_printout(screen, tree, level, parent: nbt.Tag = None):
         # Primitive types
         else:
             tagtype = str(type(branch))
-            name = str(type(branch))
+            name = ""
             value = branch
 
             if isinstance(branch, str):
