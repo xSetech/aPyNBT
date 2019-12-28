@@ -11,7 +11,7 @@ line_template = "{:<32} {:>3} {:>5}B {:>24} = {}"
 max_values_per_line = 16
 
 
-def depth_first_printout(screen, tree, level, parent_tag_type: str = None):
+def depth_first_printout(screen, tree, level, parent: nbt.Tag = None):
     padding = "  " * level
 
     name = "unknown"
@@ -21,10 +21,10 @@ def depth_first_printout(screen, tree, level, parent_tag_type: str = None):
 
     # If the parent tag type is expected to store a huge number of primitives,
     # then print multiple elements per line.
-    one_line_per_value = parent_tag_type in (nbt.TAG_Byte_Array, nbt.TAG_Int_Array, nbt.TAG_Long_Array)
+    multi_values_per_line = isinstance(parent, (nbt.TAG_Byte_Array, nbt.TAG_Int_Array, nbt.TAG_Long_Array))
     values = None
 
-    if one_line_per_value:
+    if multi_values_per_line:
         name = ""
         size = ""
 
@@ -38,7 +38,7 @@ def depth_first_printout(screen, tree, level, parent_tag_type: str = None):
             # name
             if branch.name is not None:
                 name = branch.name
-            elif parent_tag_type == nbt.TAG_List:
+            elif isinstance(parent, nbt.TAG_List):
                 name = ""  # TAG_List stores unnamed tags
 
             # value (typically the payload or meta about an iterable)
@@ -53,7 +53,7 @@ def depth_first_printout(screen, tree, level, parent_tag_type: str = None):
                 value = str(branch.payload)
 
         # Print multiple elements per-line
-        elif one_line_per_value:
+        elif multi_values_per_line:
             if values is None:
                 values = []
             values.append("{:>3}".format(branch))
@@ -64,12 +64,17 @@ def depth_first_printout(screen, tree, level, parent_tag_type: str = None):
                 print(line)
                 values = None
             continue
+
+        # Primitive types
         else:
             tagtype = str(type(branch))
             name = str(type(branch))
             value = branch
+
             if isinstance(branch, str):
                 size = str(len(branch))
+            elif isinstance(parent, nbt.TAG_List):
+                size = str(nbt.TAG_TYPES[parent.tagID].width)
 
         line = line_template.format(f"{padding}{tagtype}", level, size, name, value)
         print(line)
@@ -77,7 +82,7 @@ def depth_first_printout(screen, tree, level, parent_tag_type: str = None):
         # Then print the branches of the branch:
         if isinstance(branch, nbt.Tag) and hasattr(branch.payload, "__iter__"):
             if not isinstance(branch.payload, str):
-                depth_first_printout(screen, branch.payload, level + 1, nbt.TAG_TYPES[branch.tid])
+                depth_first_printout(screen, branch.payload, level + 1, branch)
         elif hasattr(branch, "__iter__"):
             depth_first_printout(screen, branch, level + 1, None)
 
