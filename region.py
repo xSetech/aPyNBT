@@ -59,7 +59,7 @@ class Region:
         # here. For example, a chunk with coordinate (30, -1) cooresponds to
         # Region(x=0, z=-1).chunks[30][31].
         self.chunks: Dict[int, Dict[int, Optional[List[nbt.Tag]]]] = defaultdict(lambda: defaultdict(lambda: None))
-        self.timestamps: Dict[int, Dict[int, Optional[datetime]]] = defaultdict(lambda: defaultdict(lambda: None))
+        self.timestamps: Dict[int, Dict[int, Optional[int]]] = defaultdict(lambda: defaultdict(int))
         self.compression: Dict[int, Dict[int, Optional[int]]] = defaultdict(lambda: defaultdict(lambda: None))
 
         if basename is not None:
@@ -100,7 +100,10 @@ class Region:
         #   What timezone?... Also, 2038 problem...
         timestamp_offset = metadata_offset + 4096  # constant 4KiB offset
         timestamp = unpack("!I", region_data[timestamp_offset:timestamp_offset + 4])[0]
-        chunk_last_update = datetime.fromtimestamp(timestamp)
+
+        # TODO
+        #chunk_last_update = datetime.fromtimestamp(timestamp)
+        chunk_last_update = timestamp
 
         # Chunk data (4B size, 1B compression, nB compressed NBT data)
         chunk_offset: int = 4 * 1024 * offset  # from start of file, according to the docs
