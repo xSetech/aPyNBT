@@ -33,7 +33,10 @@ class Compression(IntEnum):
 
 class Region:
 
-    __slots__ = ("x", "z", "chunks", "timestamps", "compression")
+    __slots__ = (
+        "x", "z", "chunks", "timestamps", "compression",
+        "_offsets", "_sectors"
+    )
 
     def __init__(self, region_data: memoryview, basename: str = None, x: int = None, z: int = None):
         """ Instantiate a McRegion
@@ -62,6 +65,10 @@ class Region:
         self.chunks: Dict[int, Dict[int, Optional[List[nbt.Tag]]]] = defaultdict(lambda: defaultdict(lambda: None))
         self.timestamps: Dict[int, Dict[int, Optional[int]]] = defaultdict(lambda: defaultdict(int))
         self.compression: Dict[int, Dict[int, Optional[int]]] = defaultdict(lambda: defaultdict(lambda: None))
+
+        # Copies of the original values; used for serialization and testing
+        self._offsets: Dict[int, Dict[int, Optional[int]]] = defaultdict(lambda: defaultdict(int))
+        self._sectors: Dict[int, Dict[int, Optional[int]]] = defaultdict(lambda: defaultdict(int))
 
         if basename is not None:
             self.x, self.z = coords_from_filename(basename)
