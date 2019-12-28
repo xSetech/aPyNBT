@@ -139,4 +139,6 @@ class Region:
 def deserialize_file(filename: str) -> Region:
     with open(filename, 'rb') as f:
         region_data = f.read()
-    return Region(region_data=region_data, basename=os.path.basename(filename))
+    region_basename = os.path.basename(filename)
+    r = Region(region_data=region_data, basename=region_basename)
+    return r
