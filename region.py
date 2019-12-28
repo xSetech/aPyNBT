@@ -86,7 +86,7 @@ class Region:
 
         Chunk sector sizes are computed during serialization.
         """
-        metadata_offset = (32 * z) + (4 * x)
+        metadata_offset = (128 * z) + (4 * x)
 
         # chunk data offset (3B) and sector count (1B)
         offset_bytes = region_data[metadata_offset:metadata_offset + 3]
