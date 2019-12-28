@@ -56,11 +56,11 @@ class Tag:
     _is_primitive: bool = False
 
     def __init__(self, nbt_data: memoryview = None, name: str = None, payload: Any = None, named: bool = None, tagged: bool = True):
-        """ Instantiation for all decendent tag types
+        """ Instantiation for all decedent tag types
 
         The purpose of this method is to populate the three tag attributes (id,
         name, and payload). Additional attributes are set for programmer
-        convinience. The "name" and "payload" attributes are populated based on
+        convenience. The "name" and "payload" attributes are populated based on
         data in the byte array "nbt_data".
 
         Args:
@@ -110,7 +110,7 @@ class Tag:
         self.payload: Any = None
 
         # The number of bytes processed during deserialization. If the value is
-        # zero, no deserialization has occured.
+        # zero, no deserialization has occurred.
         self._size: int = 0
 
         # Indicates the tag has bytes for its tag id.
