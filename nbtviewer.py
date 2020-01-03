@@ -11,7 +11,7 @@ line_template = "{:<32} {:>3} {:>5}B {:>24} = {}"
 max_values_per_line = 16
 
 
-def depth_first_printout(screen, tree, level, parent: nbt.Tag = None):
+def print_nbt(tree, level: int = 0, parent: nbt.Tag = None):
     padding = "  " * level
 
     name = "unknown"
@@ -82,9 +82,9 @@ def depth_first_printout(screen, tree, level, parent: nbt.Tag = None):
         # Then print the branches of the branch:
         if isinstance(branch, nbt.Tag) and hasattr(branch.payload, "__iter__"):
             if not isinstance(branch.payload, str):
-                depth_first_printout(screen, branch.payload, level + 1, branch)
+                print_nbt(branch.payload, level + 1, branch)
         elif hasattr(branch, "__iter__"):
-            depth_first_printout(screen, branch, level + 1, None)
+            print_nbt(branch, level + 1, None)
 
     if values:
         tagtype = str(type(branch))
@@ -93,14 +93,7 @@ def depth_first_printout(screen, tree, level, parent: nbt.Tag = None):
         print(line)
 
 
-def main():
-    # nbtviewer.py <filename>
-    try:
-        filename = sys.argv[1]
-    except IndexError:
-        print("! filename required")
-        sys.exit(1)
-
+def print_nbt_file(filename: str):
     tree = None
 
     # Region/Anvil or pure NBT (compressed or not) accepted
@@ -113,7 +106,18 @@ def main():
 
     print("{:<32} {:>3} {:>5}  {:>24} = {}".format(f"TYPE", "LVL", "SIZE", "NAME", "VALUE"))
     print('-' * (32 + 1 + 3 + 1 + 5 + 2 + 24 + 2))
-    depth_first_printout(None, tree, level=0)
+    print_nbt(tree)
+
+
+def main():
+    # nbtviewer.py <filename>
+    try:
+        filename = sys.argv[1]
+    except IndexError:
+        print("! filename required")
+        sys.exit(1)
+
+    print_nbt_file(filename)
 
 
 if __name__ == "__main__":
