@@ -117,7 +117,10 @@ def main():
         print("! filename required")
         sys.exit(1)
 
-    print_nbt_file(filename)
+    try:
+        print_nbt_file(filename)
+    except BrokenPipeError:
+        pass  # permits e.g. `nbtviewer <file> | head`
 
 
 if __name__ == "__main__":
