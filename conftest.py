@@ -35,7 +35,7 @@ PROFILING_PUBLIC_DIR = Path("perf/Public/")
 PROFILING_PRIVATE_DIR = Path("perf/Private/")
 
 
-def _find_all_test_data(root: Path = DEFAULT_TEST_DATA_PATH, exts: Tuple[str] = None) -> List[Path]:
+def _find_all_test_data(root: Path, exts: Tuple[str] = None) -> List[Path]:
     """ Search and return testable files based on suffix
     """
     files = []
@@ -69,6 +69,7 @@ def pytest_addoption(parser):
     g.addoption("--nbt-profiling", action="store_true", dest="nbt-profiling", help="Profile the nbt module during unit test execution")
     g.addoption("--public-profiling", action="store_true", dest="public-profiling", help="Save per-test prof data named as hashed test parameter ids")
     g.addoption("--pertest-profiling", action="store_true", dest="pertest-profiling", help="Save prof data for each test & parameter combination")
+    g.addoption("--test-data-dir", action="store", type=str, default=None, dest="test-data-dir", help="Search for NBT/Region files in this directory")
 
 
 PROFILING_NBT = False
@@ -113,9 +114,15 @@ def pytest_configure(config):
     if max_files == 0:
         return
 
-    NBT_FILEPATH_FILES = _find_all_test_data(exts=NBT_FILE_SUFFIXES)
-    ANVIL_FILEPATH_FILES = _find_all_test_data(exts=ANVIL_FILE_SUFFIXES)
-    REGION_FILEPATH_FILES = _find_all_test_data(exts=REGION_FILE_SUFFIXES)
+    # --test-data-dir
+    test_data_root = DEFAULT_TEST_DATA_PATH
+    if config.getoption("test-data-dir") is not None:
+        test_data_root = Path(config.getoption("test-data-dir"))
+
+    # Find files to use as test parameters
+    NBT_FILEPATH_FILES = _find_all_test_data(root=test_data_root, exts=NBT_FILE_SUFFIXES)
+    ANVIL_FILEPATH_FILES = _find_all_test_data(root=test_data_root, exts=ANVIL_FILE_SUFFIXES)
+    REGION_FILEPATH_FILES = _find_all_test_data(root=test_data_root, exts=REGION_FILE_SUFFIXES)
 
     # --repeat-files
     if config.getoption("repeat-files") > 0:
