@@ -16,7 +16,7 @@ from struct import pack, unpack
 from typing import Dict, List, Optional, Tuple
 import zlib
 
-import nbt
+from . import nbt
 
 re_coords_from_filename = re.compile(r"r\.([-0-9]+)\.([-0-9]+)\.mc[ar]")
 

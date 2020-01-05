@@ -18,7 +18,7 @@ import pytest
 import nbt
 
 # Search for files starting in this directory:
-DEFAULT_TEST_DATA_PATH = Path("test_data/")
+DEFAULT_TEST_DATA_PATH = Path("data/")
 
 # Consider files with these extensions to contain NBT data (compressed or uncompressed):
 NBT_FILE_SUFFIXES: Tuple[str] = (".dat",)

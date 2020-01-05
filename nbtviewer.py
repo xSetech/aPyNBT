@@ -4,8 +4,8 @@
 
 import sys
 
-import nbt
-import region
+import aPyNBT.nbt as nbt
+import aPyNBT.region as region
 
 line_template = "{:<32} {:>3} {:>5}B {:>24} = {}"
 max_values_per_line = 16
