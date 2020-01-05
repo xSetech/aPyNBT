@@ -10,7 +10,7 @@ from typing import List, Tuple
 
 import pytest
 
-import nbt
+import aPyNBT.nbt as nbt
 
 
 def test_deserialize_all_test_data(nbt_filepath: Path):

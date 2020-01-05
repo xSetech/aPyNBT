@@ -6,7 +6,7 @@ import os
 
 import pytest
 
-import region
+import aPyNBT.region as region
 
 
 @pytest.mark.parametrize(
