@@ -13,10 +13,12 @@ import pytest
 import aPyNBT.nbt as nbt
 
 
+@pytest.mark.skip("only used for profiling")
 def test_deserialize_all_test_data(nbt_filepath: Path):
     nbt.deserialize_file(nbt_filepath)
 
 
+@pytest.mark.skip("only used for profiling")
 def test_reserialize_all_test_data(nbt_filepath: Path):
     tree = nbt.deserialize_file(nbt_filepath)
     data = nbt.serialize(tree)
