@@ -1,0 +1,3 @@
+# CPython with these builtins:
+#   - gzip
+#   - zlib
