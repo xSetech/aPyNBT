@@ -15,10 +15,10 @@ import line_profiler
 import _line_profiler
 import pytest
 
-import nbt
+import aPyNBT.nbt as nbt
 
 # Search for files starting in this directory:
-DEFAULT_TEST_DATA_PATH = Path("data/")
+DEFAULT_TEST_DATA_PATH = Path("tests/data/")
 
 # Consider files with these extensions to contain NBT data (compressed or uncompressed):
 NBT_FILE_SUFFIXES: Tuple[str] = (".dat",)
