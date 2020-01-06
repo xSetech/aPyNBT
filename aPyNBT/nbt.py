@@ -50,7 +50,7 @@ class Tag:
     # "tag id", an immutable attribute of a specific subclass of Tag
     tid: int = None
 
-    # Is the tag's payload an equivallent basic Python type (int, str, etc)?
+    # Is the tag's payload an equivalent basic Python type (int, str, etc)?
     # This is a class attribute that permits significant performance gains
     # during serialization or deserialization.
     _is_primitive: bool = False
@@ -525,7 +525,7 @@ class TAG_List(TagIterable):
         # don't lose any information at serialization since the tag-type is
         # known from the tagID attribute value. Supporting tag types have a
         # positive boolean attribute named "_is_primitive" and define a
-        # class method for converting bytes into the correspinding Python
+        # class method for converting bytes into the corresponding Python
         # basic type. This improves performance by avoiding object
         # instantiation.
         #

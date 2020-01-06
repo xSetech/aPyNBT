@@ -1,0 +1,18 @@
+matrix:
+- name: aPyNBT
+  sources:
+  - "*.py"
+  - aPyNBT/*.py
+  - tests/*.py
+  hunspell:
+    d: en_US
+  dictionary:
+    wordlists:
+    - linting/dictionary.txt
+    output: linting/dictionary.dic
+  pipeline:
+  - pyspelling.filters.python:
+    comments: true
+    docstrings: true
+    group_comments: true
+    strings: true

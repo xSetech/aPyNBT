@@ -1,16 +1,27 @@
 [flake8]
 ignore =
-    # "line too long"
+
+    # - "line too long"
+    #
     #   80 characters is ridiculously short and developers often jump through
     #   hilariously ugly hoops to keep compliant with this rule and its variants.
     #   Commiting long lines, whatever that is, can be debated in code-review.
     E501,
 
-    # Aesthics
-    #   "continuation line under-indented for visual indent"
-    #   "multiple spaces after ','"
-    #   "missing whitespace after ','"
+    # - "continuation line under-indented for visual indent"
+    # - "multiple spaces after ','"
+    # - "missing whitespace after ','"
     E128, E241, E231,
+
+    # - "Spelling error in name (e.g. variable, function, class)"
+    # - "Spelling error in comments"
+    #
+    #   These rules added by `flake8-spelling` are disabled because they're a
+    #   headache to maintain. A large dictionary or more robust rules are
+    #   required. I experimented with `pyspelling` and was not pleased with the
+    #   results. For now, flake8-spelling is listed as a test requirement and is
+    #   effectively disabled by ignoring these rules.
+    SC200, SC100,
 
 exclude =
     .git,

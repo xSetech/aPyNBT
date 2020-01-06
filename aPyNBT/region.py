@@ -60,7 +60,7 @@ class Region:
         #
         # The coordinates here are the 2-d chunk offset from the top-left of the
         # region. In other words, the chunk's actual coordinates don't matter
-        # here. For example, a chunk with coordinate (30, -1) cooresponds to
+        # here. For example, a chunk with coordinate (30, -1) corresponds to
         # Region(x=0, z=-1).chunks[30][31].
         self.chunks: Dict[int, Dict[int, Optional[List[nbt.Tag]]]] = defaultdict(lambda: defaultdict(lambda: None))
         self.timestamps: Dict[int, Dict[int, Optional[int]]] = defaultdict(lambda: defaultdict(int))
@@ -96,7 +96,7 @@ class Region:
         """
         metadata_offset = (128 * z) + (4 * x)
 
-        # chunk data offset (3B) and sector count (1B)
+        # chunk data offset (3 bytes) and sector count (1 byte)
         offset_bytes = region_data[metadata_offset:metadata_offset + 3]
         offset = int.from_bytes(offset_bytes, byteorder='big', signed=False)
         sectors = region_data[metadata_offset + 3:metadata_offset + 4][0]
@@ -106,7 +106,7 @@ class Region:
         if offset == 0 and sectors == 0:
             return  # ungenerated chunk
 
-        # timestamp (4B)
+        # timestamp (4 bytes)
         #   What timezone?... Also, 2038 problem...
         timestamp_offset = metadata_offset + 4096  # constant 4KiB offset
         timestamp = unpack("!I", region_data[timestamp_offset:timestamp_offset + 4])[0]
@@ -115,7 +115,7 @@ class Region:
         # chunk_last_update = datetime.fromtimestamp(timestamp)
         chunk_last_update = timestamp
 
-        # Chunk data (4B size, 1B compression, nB compressed NBT data)
+        # Chunk data (4 bytes size, 2 bytes compression, n-bytes compressed data)
         chunk_offset: int = 4 * 1024 * offset  # from start of file, according to the docs
         chunk_size_bytes: memoryview = region_data[chunk_offset:chunk_offset + 4]
         chunk_size: int = unpack("!I", chunk_size_bytes)[0]
@@ -138,7 +138,7 @@ class Region:
         x & z here correspond to the location of the region as provided in the
         filename. Further down, x & z refer to the chunk offset.
         """
-        # Metadata is stored in two x-major matrixes.
+        # Metadata is stored in two x-major matrices.
         for z in range(0, 32):
             for x in range(0, 32):
                 self.deserialize_chunk(region_data, x, z)
@@ -148,14 +148,14 @@ class Region:
         """
         chunk_bytes: Dict[int, Dict[int, bytearray]] = defaultdict(lambda: defaultdict(lambda: None))
 
-        # 4KiB sector offset to start of chunk data
+        # 4 KiB sector offset to start of chunk data
         chunk_sectors_offset: Dict[int, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
 
-        # Number of 4KiB sectors spanned
+        # Number of 4 KiB sectors spanned
         chunk_sectors_spanned: Dict[int, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
 
         # Chunk serialization and compression
-        next_offset = 2  # in 4KiB sectors
+        next_offset = 2  # in 4 KiB sectors
         for z in range(0, 32):
             for x in range(0, 32):
                 if self.chunks[z][x] is not None:

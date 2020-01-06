@@ -157,7 +157,7 @@ def test_tagint_payload_serialization(tag):
     for i in range(-10, 10):
         tag.payload = i                     # property setter test
         assert tag.payload == i             # property getter test
-        tag.deserialize(memoryview(tag.serialize()))    # assert reserialization doesnt mutate the payload value
+        tag.deserialize(memoryview(tag.serialize()))    # assert reserialization doesn't mutate the payload value
         assert tag.payload == i
 
 
@@ -237,7 +237,7 @@ def test_tag_string(string_val):
     tag = nbt.TAG_String(payload=string_val, tagged=False)
     assert tag.payload == string_val
 
-    # Serialize the previous tag and pass the resuting bytes to the constructor
+    # Serialize the previous tag and pass the resulting bytes to the constructor
     # of a new tag. This tests whether we can both correctly serialize and then
     # deserialize string values.
     tag2 = nbt.TAG_String(nbt_data=memoryview(tag.serialize()), named=False, tagged=False)
