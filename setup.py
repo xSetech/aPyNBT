@@ -4,6 +4,8 @@ setup(
     name="aPyNBT",
     version="0.3a",
     packages=['aPyNBT'],
+    python_requires="3.6+",
+    license="GNU Lesser General Public License version 3",
     author="Seth Junot",
     author_email="xsetech@gmail.com",
     description="Deserializer and serializer for Minecraft binary formats",
