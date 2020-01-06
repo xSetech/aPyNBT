@@ -64,7 +64,9 @@ def pytest_addoption(parser):
     g = parser.getgroup("aPyNBT Test Control")
     g.addoption("--shuffle-files", action="store_true", dest="shuffle-files", help="Shuffle lists of files")
     g.addoption("--repeat-files", action="store", type=int, default=1, dest="repeat-files", help="Number of times to test all files")
-    g.addoption("--limit-files", action="store", type=int, default=-1, dest="limit-files", help="Cap the number files")
+    g.addoption("--limit-nbt-files", action="store", type=int, default=-1, dest="limit-nbt-files", help="Cap the number of data files used for testing (nbt)")
+    g.addoption("--limit-region-files", action="store", type=int, default=8, dest="limit-region-files", help="Cap the number of data files used for testing (region)")
+    g.addoption("--limit-anvil-files", action="store", type=int, default=8, dest="limit-anvil-files", help="Cap the number of data files used for testing (anvil)")
     g.addoption("--file-ids", action="store_true", dest="file-ids", help="Don't create test IDs out of filenames")
     g.addoption("--nbt-profiling", action="store_true", dest="nbt-profiling", help="Profile the nbt module during unit test execution")
     g.addoption("--public-profiling", action="store_true", dest="public-profiling", help="Save per-test prof data named as hashed test parameter ids")
@@ -107,13 +109,6 @@ def pytest_configure(config):
     # --pertest-profiling
     PERTEST_PROFILING = config.getoption("pertest-profiling")
 
-    # --limit-files
-    max_files = config.getoption("limit-files")
-
-    # Skip finding files if the limit is zero
-    if max_files == 0:
-        return
-
     # --test-data-dir
     test_data_root = DEFAULT_TEST_DATA_PATH
     if config.getoption("test-data-dir") is not None:
@@ -140,8 +135,19 @@ def pytest_configure(config):
         # * Modern meaning most x86_64; definitely not all RISC variants...
         random.shuffle(NBT_FILEPATH_FILES)
 
-    if max_files > 0:
-        NBT_FILEPATH_FILES = NBT_FILEPATH_FILES[:max_files]
+    # --limit-files
+    max_nbt_files = config.getoption("limit-nbt-files")
+    max_anvil_files = config.getoption("limit-anvil-files")
+    max_region_files = config.getoption("limit-region-files")
+
+    if max_nbt_files >= 0:
+        NBT_FILEPATH_FILES = NBT_FILEPATH_FILES[:max_nbt_files]
+
+    if max_anvil_files >= 0:
+        ANVIL_FILEPATH_FILES = ANVIL_FILEPATH_FILES[:max_anvil_files]
+
+    if max_region_files >= 0:
+        REGION_FILEPATH_FILES = REGION_FILEPATH_FILES[:max_region_files]
 
     # --file-ids
     if config.getoption("file-ids"):
