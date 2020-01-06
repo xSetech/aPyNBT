@@ -1,7 +1,6 @@
 # aPyNBT
 
-An implementation of a [deserializer and serializer](https://en.wikipedia.org/wiki/Serialization) for [Minecraft](https://www.minecraft.net/) binary formats, specifically [NBT](https://minecraft.gamepedia.com/NBT_format) and [Region](https://minecraft.gamepedia.com/Region_file_format)/[Anvil](https://minecraft.gamepedia.com/Anvil_file_format).
-, written for Python 3.6.
+An implementation of a [deserializer and serializer](https://en.wikipedia.org/wiki/Serialization) for [Minecraft](https://www.minecraft.net/) binary formats, specifically [NBT](https://minecraft.gamepedia.com/NBT_format) and [Region](https://minecraft.gamepedia.com/Region_file_format)/[Anvil](https://minecraft.gamepedia.com/Anvil_file_format), written for and tested on [Python 3.6](https://docs.python.org/3.6/).
 
 # Motivation and Focus
 
