@@ -3,7 +3,6 @@
 """
 
 import hashlib
-import os
 from pathlib import Path
 import pickle
 import random
@@ -80,10 +79,10 @@ PUBLIC_PROFILING = False
 
 def pytest_configure(config):
     global \
-    NBT_FILEPATH_FILES, NBT_FILEPATH_IDS, \
-    ANVIL_FILEPATH_FILES, ANVIL_FILEPATH_IDS, \
-    REGION_FILEPATH_FILES, REGION_FILEPATH_IDS, \
-    PERTEST_PROFILING, PROFILING_NBT, PUBLIC_PROFILING
+        NBT_FILEPATH_FILES, NBT_FILEPATH_IDS, \
+        ANVIL_FILEPATH_FILES, ANVIL_FILEPATH_IDS, \
+        REGION_FILEPATH_FILES, REGION_FILEPATH_IDS, \
+        PERTEST_PROFILING, PROFILING_NBT, PUBLIC_PROFILING
 
     NBT_FILEPATH_FILES = []
     ANVIL_FILEPATH_FILES = []
@@ -218,7 +217,6 @@ def pytest_runtest_protocol(item, nextitem):
         pickle.dump(AGGREGATE_STATS, f, pickle.HIGHEST_PROTOCOL)
     with open(PROFILING_PUBLIC_DIR / f"aggregate.stats", 'w') as f:
         line_profiler.show_text(AGGREGATE_STATS.timings, AGGREGATE_STATS.unit, stream=f)
-
 
     # Profiling results will always have individual entries in the Private/
     # directory. Item name hashing and saving to the public directory can be

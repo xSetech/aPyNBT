@@ -6,7 +6,7 @@ https://minecraft.gamepedia.com/Anvil_file_format
 """
 
 from collections import defaultdict
-from datetime import datetime
+# from datetime import datetime
 from enum import IntEnum
 import gzip
 from math import ceil
@@ -112,7 +112,7 @@ class Region:
         timestamp = unpack("!I", region_data[timestamp_offset:timestamp_offset + 4])[0]
 
         # TODO
-        #chunk_last_update = datetime.fromtimestamp(timestamp)
+        # chunk_last_update = datetime.fromtimestamp(timestamp)
         chunk_last_update = timestamp
 
         # Chunk data (4B size, 1B compression, nB compressed NBT data)

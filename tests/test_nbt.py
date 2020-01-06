@@ -2,11 +2,7 @@
 """ Tests for nbt.py
 """
 
-import gzip
-import os
 from pathlib import Path
-import random
-from typing import List, Tuple
 
 import pytest
 
@@ -21,7 +17,7 @@ def test_deserialize_all_test_data(nbt_filepath: Path):
 @pytest.mark.skip("only used for profiling")
 def test_reserialize_all_test_data(nbt_filepath: Path):
     tree = nbt.deserialize_file(nbt_filepath)
-    data = nbt.serialize(tree)
+    nbt.serialize(tree)
 
 
 def test_reserialize_reference_compared(nbt_filepath: Path):
@@ -56,7 +52,7 @@ def test_tag_named_attr():
 
     named_tag3 = nbt.TAG_Byte(payload=0, named=True)
     named_tag3.name = None
-    assert named_tag3.name == None
+    assert named_tag3.name is None
     assert named_tag3.serialize() == named_tag1.serialize()
     assert named_tag3.name == ""
 
@@ -70,13 +66,13 @@ def test_tag_named_attr():
 
     # More checks that that the named attribute is correctly inferred.
     tag_from_deserialization1 = nbt.TAG_Byte(nbt_data=memoryview(named_tag_with_name.serialize()))
-    assert tag_from_deserialization1._named == True
+    assert tag_from_deserialization1._named is True
     assert tag_from_deserialization1.payload == 0
     assert tag_from_deserialization1.name == "a tag name test"
     assert tag_from_deserialization1.serialize() == named_tag_with_name.serialize()
 
     tag_from_deserialization2 = nbt.TAG_Byte(nbt_data=memoryview(unnamed_tag1.serialize()), named=False)
-    assert tag_from_deserialization2._named == False
+    assert tag_from_deserialization2._named is False
 
 
 def test_tag_end():
@@ -150,7 +146,8 @@ def test_tagint_serialization_lengths(tag_class):
 
 @pytest.mark.parametrize(
     "tag",
-    [tag_class(name=name, payload=42, named=(not not name), tagged=tagged)
+    [
+        tag_class(name=name, payload=42, named=(not not name), tagged=tagged)
         for tag_class in nbt.TAGS if tag_class in nbt.TagInt.__subclasses__()
         for name in ("", "named tag")
         for tagged in (True, False)

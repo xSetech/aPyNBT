@@ -124,5 +124,6 @@ def main():
 
 
 if __name__ == "__main__":
-#    sys.setrecursionlimit(3000000)
+    # TODO Explain why this is needed sometimes.
+    # sys.setrecursionlimit(3000000)
     main()

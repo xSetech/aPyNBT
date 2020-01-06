@@ -1,0 +1,20 @@
+[flake8]
+ignore =
+    # "line too long"
+    #   80 characters is ridiculously short and developers often jump through
+    #   hilariously ugly hoops to keep compliant with this rule and its variants.
+    #   Commiting long lines, whatever that is, can be debated in code-review.
+    E501,
+
+    # Aesthics
+    #   "continuation line under-indented for visual indent"
+    #   "multiple spaces after ','"
+    #   "missing whitespace after ','"
+    E128, E241, E231,
+
+exclude =
+    .git,
+    __pycache__,
+    tests/data/,
+    tests/perf/,
+    tests/prof/,
