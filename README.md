@@ -2,12 +2,12 @@
 
 An implementation of a [deserializer and serializer](https://en.wikipedia.org/wiki/Serialization) for [Minecraft](https://www.minecraft.net/) binary formats, specifically [NBT](https://minecraft.gamepedia.com/NBT_format) and [Region](https://minecraft.gamepedia.com/Region_file_format)/[Anvil](https://minecraft.gamepedia.com/Anvil_file_format), written for and tested on [Python 3.6](https://docs.python.org/3.6/).
 
-# Motivation and Focus
+## Motivation and Focus
 
 This project started as an experiment in understanding the Named Binary Tag (NBT) serialization format created by [Markus
 Persson](https://en.wikipedia.org/wiki/Markus_Persson). It later expanded to understanding the Region/Anvil file-formats. This library is focused on quick deserialization of NBT or Region/Anvil binary into Python [data structures](https://docs.python.org/3.6/tutorial/classes.html) and [primitive types](https://docs.python.org/3.6/library/stdtypes.html). It avoids being a library for manipulating higher-level game objects (e.g. [books](https://minecraft.gamepedia.com/Book_and_Quill), [signs](https://minecraft.gamepedia.com/Sign), or [player data](https://minecraft.gamepedia.com/Player.dat_format)). There are no guarantees or checks performed by this code that confirms the Minecraft client or server will accept modified data.
 
-# Installing
+## Installing
 
 aPyNBT is available on PyPI:
 
@@ -15,7 +15,7 @@ aPyNBT is available on PyPI:
 pip install aPyNBT
 ```
 
-# Releasing
+## Releasing
 
 Releases are done manually:
 
@@ -24,7 +24,7 @@ python3.6 setup.py sdist bdist_wheel
 twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 ```
 
-# nbtviewer.py
+## nbtviewer.py
 
 A (very crappy) reference use of the library is provided. Here is an example of passing it a [level.dat](https://minecraft.gamepedia.com/Level_format#level.dat_format):
 
