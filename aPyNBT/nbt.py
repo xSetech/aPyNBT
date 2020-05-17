@@ -455,7 +455,7 @@ class TAG_String(Tag):
     _is_primitive: bool = True
 
     @classmethod
-    def deserialize_primitive(cls, data: memoryview, _unpack=unpack) -> Tuple[int, int]:
+    def deserialize_primitive(cls, data: memoryview, _unpack=unpack) -> Tuple[str, int]:
         string_size = _unpack("!H", data[:2])[0]
 
         if string_size == 0:
