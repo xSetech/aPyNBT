@@ -26,7 +26,7 @@ twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 
 ## nbtviewer.py
 
-A (very crappy) reference use of the library is provided. Here is an example of passing it a [level.dat](https://minecraft.gamepedia.com/Level_format#level.dat_format):
+nbtviewer.py is a rough example use of the library. Pass it e.g. a [level.dat](https://minecraft.gamepedia.com/Level_format#level.dat_format):
 
 ```
 TYPE                             LVL  SIZE                      NAME = VALUE
